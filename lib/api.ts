@@ -53,7 +53,7 @@ export async function login(email: string, password: string) {
 }
 
 export async function registerUser(payload: RegisterPayload) {
-  const response = await api.post<AuthResponse>('/auth/register', payload);
+  const response = await api.post<User>('/auth/register', payload);
 
   return response.data;
 }
