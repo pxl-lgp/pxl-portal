@@ -223,6 +223,30 @@ export async function generateBrief(payload: AiGenerationPayload) {
   return response.data;
 }
 
+export type AnalyzePerformancePayload = {
+  clientName: string;
+  contentTitle?: string;
+  platform?: string;
+  contentType?: string;
+  metrics: {
+    reach?: number;
+    impressions?: number;
+    engagement?: number;
+    clicks?: number;
+    likes?: number;
+    comments?: number;
+    shares?: number;
+    saves?: number;
+    followersGained?: number;
+  };
+};
+
+export async function analyzePerformance(payload: AnalyzePerformancePayload) {
+  const response = await api.post<AiGenerationResponse>('/ai/analyze-performance', payload);
+
+  return response.data;
+}
+
 export async function getAnalyticsRecords() {
   const response = await api.get<AnalyticsRecord[]>('/analytics');
 
