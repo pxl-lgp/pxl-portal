@@ -1,0 +1,291 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-antonio);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+  --animate-marquee: marquee 36s linear infinite;
+  --animate-marquee-reverse: marquee-reverse 42s linear infinite;
+  --animate-blob: blob 16s ease-in-out infinite;
+  --animate-gradient-x: gradient-x 6s ease infinite;
+  --animate-bounce-slow: bounce 2.4s infinite;
+  --animate-wiggle: wiggle 0.5s ease-in-out;
+  --animate-pop: pop 0.35s ease-out;
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes marquee-reverse {
+  from {
+    transform: translateX(-50%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes blob {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(40px, -50px) scale(1.15);
+  }
+  66% {
+    transform: translate(-30px, 30px) scale(0.9);
+  }
+}
+
+@keyframes gradient-x {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes wiggle {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-6deg);
+  }
+  75% {
+    transform: rotate(6deg);
+  }
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+:root {
+  /* Dark palette matching the rendered Jerwhyne Framer portfolio:
+     near-black canvas, white display type, light-cyan accent */
+  --background: #121213;
+  --foreground: #ffffff;
+  --card: #1c1c1e;
+  --card-foreground: #ffffff;
+  --popover: #1c1c1e;
+  --popover-foreground: #ffffff;
+  --primary: #5ddafc;
+  --primary-foreground: #0f0f0f;
+  --secondary: #2a2a2c;
+  --secondary-foreground: #ffffff;
+  --muted: #232325;
+  --muted-foreground: #b5b5b5;
+  --accent: #2a2a2c;
+  --accent-foreground: #ffffff;
+  --destructive: #ff2244;
+  --border: #303030;
+  --input: #303030;
+  --ring: #5ddafc;
+  --chart-1: #5ddafc;
+  --chart-2: #e3af20;
+  --chart-3: #6e81ff;
+  --chart-4: #00a6c7;
+  --chart-5: #b5b5b5;
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+  --background: #121213;
+  --foreground: #ffffff;
+  --card: #1c1c1e;
+  --card-foreground: #ffffff;
+  --popover: #1c1c1e;
+  --popover-foreground: #ffffff;
+  --primary: #5ddafc;
+  --primary-foreground: #0f0f0f;
+  --secondary: #2a2a2c;
+  --secondary-foreground: #ffffff;
+  --muted: #232325;
+  --muted-foreground: #b5b5b5;
+  --accent: #2a2a2c;
+  --accent-foreground: #ffffff;
+  --destructive: #ff2244;
+  --border: #303030;
+  --input: #303030;
+  --ring: #5ddafc;
+  --chart-1: #5ddafc;
+  --chart-2: #e3af20;
+  --chart-3: #6e81ff;
+  --chart-4: #00a6c7;
+  --chart-5: #b5b5b5;
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+.portal-theme {
+  --background: #0f1115;
+  --foreground: #f7f8fa;
+  --card: #171a20;
+  --card-foreground: #f7f8fa;
+  --popover: #171a20;
+  --popover-foreground: #f7f8fa;
+  --primary: #5ddafc;
+  --primary-foreground: #071014;
+  --secondary: #22262e;
+  --secondary-foreground: #f7f8fa;
+  --muted: #20242b;
+  --muted-foreground: #9ca3af;
+  --accent: #262c35;
+  --accent-foreground: #ffffff;
+  --border: #2b3039;
+  --input: #303641;
+  --ring: #5ddafc;
+  --sidebar: #14171c;
+  --sidebar-foreground: #f7f8fa;
+  --sidebar-primary: #5ddafc;
+  --sidebar-primary-foreground: #071014;
+  --sidebar-accent: #232832;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #292e37;
+  --sidebar-ring: #5ddafc;
+  --brand: #5ddafc;
+  --brand-dark: #5ddafc;
+  --panel-muted: #20242b;
+  color-scheme: dark;
+}
+
+@layer components {
+  .portal-theme .panel {
+    @apply rounded-xl bg-card text-card-foreground ring-1 ring-foreground/10;
+  }
+
+  .portal-theme .field {
+    @apply grid gap-2;
+  }
+
+  .portal-theme .field > label {
+    @apply text-sm font-medium text-foreground;
+  }
+
+  .portal-theme .input,
+  .portal-theme .select,
+  .portal-theme .textarea {
+    @apply w-full rounded-lg border border-input bg-transparent px-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-ring focus:ring-3 focus:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .portal-theme .input,
+  .portal-theme .select {
+    @apply h-9;
+  }
+
+  .portal-theme .textarea {
+    @apply min-h-28 py-2;
+  }
+
+  .portal-theme .select option {
+    @apply bg-popover text-popover-foreground;
+  }
+
+  .portal-theme .button {
+    @apply inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-transparent px-2.5 text-sm font-medium whitespace-nowrap transition-all outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  .portal-theme .button-primary {
+    @apply bg-primary text-primary-foreground hover:bg-primary/80;
+  }
+
+  .portal-theme .button-secondary {
+    @apply border-border bg-background text-foreground hover:bg-muted;
+  }
+
+  .portal-theme .badge {
+    @apply inline-flex h-5 w-fit items-center rounded-full px-2 text-xs font-medium;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans scroll-smooth;
+  }
+  /* Antonio display headings, uppercase like the reference portfolio */
+  h1,
+  h2,
+  h3 {
+    @apply font-heading uppercase;
+  }
+}
