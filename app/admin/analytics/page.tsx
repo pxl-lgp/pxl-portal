@@ -43,7 +43,7 @@ export default function AnalyticsPage() {
   });
   const contentQuery = useQuery({
     queryKey: ['content'],
-    queryFn: getContentItems,
+    queryFn: () => getContentItems(),
   });
   const clientsQuery = useQuery({
     queryKey: ['clients'],

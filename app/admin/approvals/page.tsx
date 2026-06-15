@@ -23,7 +23,7 @@ export default function ApprovalsPage() {
   });
   const contentQuery = useQuery({
     queryKey: ['content'],
-    queryFn: getContentItems,
+    queryFn: () => getContentItems(),
   });
   const clientsQuery = useQuery({
     queryKey: ['clients'],
