@@ -12,16 +12,24 @@ import {
   AnalyticsRecord,
   AiGenerationPayload,
   AiGenerationResponse,
+  AssistResponse,
+  BestTimeResult,
   Client,
   ClientPortalOverview,
   ClientPayload,
   ContentItem,
   ContentPayload,
+  ContentPillar,
+  ContentPillarPayload,
+  ContentTemplate,
+  ContentTemplatePayload,
   DriveFolderListing,
   DriveItem,
   Lead,
   LeadPayload,
   LeadUpdatePayload,
+  OnboardingTask,
+  OnboardingTaskStatus,
   RegisterPayload,
   Report,
   ReportPayload,
@@ -126,8 +134,18 @@ export async function disconnectSocialConnection(clientId: string, connectionId:
   return response.data;
 }
 
-export async function getAutomationLogs() {
-  const response = await api.get<AutomationLog[]>('/automation/logs');
+export async function getAutomationLogs(status?: AutomationLog['status']) {
+  const response = await api.get<AutomationLog[]>('/automation/logs', {
+    params: status ? { status } : undefined,
+  });
+
+  return response.data;
+}
+
+export async function retryAutomationLog(id: string) {
+  const response = await api.post<{ retried: boolean; eventName: string; entityId: string | null }>(
+    `/automation/logs/${id}/retry`,
+  );
 
   return response.data;
 }
@@ -223,26 +241,32 @@ export async function generateBrief(payload: AiGenerationPayload) {
   return response.data;
 }
 
-export type AnalyzePerformancePayload = {
-  clientName: string;
-  contentTitle?: string;
-  platform?: string;
-  contentType?: string;
-  metrics: {
-    reach?: number;
-    impressions?: number;
-    engagement?: number;
-    clicks?: number;
-    likes?: number;
-    comments?: number;
-    shares?: number;
-    saves?: number;
-    followersGained?: number;
-  };
-};
+export async function generateBroll(payload: AiGenerationPayload) {
+  const response = await api.post<AiGenerationResponse>('/ai/generate-broll', payload);
 
-export async function analyzePerformance(payload: AnalyzePerformancePayload) {
-  const response = await api.post<AiGenerationResponse>('/ai/analyze-performance', payload);
+  return response.data;
+}
+
+export async function generateOverlay(payload: AiGenerationPayload) {
+  const response = await api.post<AiGenerationResponse>('/ai/generate-overlay', payload);
+
+  return response.data;
+}
+
+export async function generateTags(payload: AiGenerationPayload) {
+  const response = await api.post<AiGenerationResponse>('/ai/generate-tags', payload);
+
+  return response.data;
+}
+
+export async function generateTemplate(payload: AiGenerationPayload) {
+  const response = await api.post<AiGenerationResponse>('/ai/generate-template', payload);
+
+  return response.data;
+}
+
+export async function askAssistant(message: string, clientName?: string) {
+  const response = await api.post<AssistResponse>('/assistant/chat', { message, clientName });
 
   return response.data;
 }
@@ -422,4 +446,79 @@ export async function downloadMyDriveFile(fileId: string) {
   });
 
   return response.data;
+}
+
+export async function getBestTimes(clientId?: string) {
+  const response = await api.get<BestTimeResult>('/analytics/best-times', {
+    params: clientId ? { clientId } : undefined,
+  });
+
+  return response.data;
+}
+
+export async function autoTagAsset(id: string) {
+  const response = await api.post<Asset>(`/assets/${id}/auto-tag`);
+
+  return response.data;
+}
+
+export async function getOnboardingTasks(clientId: string) {
+  const response = await api.get<OnboardingTask[]>('/onboarding-tasks', { params: { clientId } });
+
+  return response.data;
+}
+
+export async function updateOnboardingTask(
+  id: string,
+  payload: { status?: OnboardingTaskStatus; title?: string; description?: string },
+) {
+  const response = await api.patch<OnboardingTask>(`/onboarding-tasks/${id}`, payload);
+
+  return response.data;
+}
+
+export async function getContentPillars(clientId: string) {
+  const response = await api.get<ContentPillar[]>('/content-pillars', { params: { clientId } });
+
+  return response.data;
+}
+
+export async function createContentPillar(payload: ContentPillarPayload) {
+  const response = await api.post<ContentPillar>('/content-pillars', payload);
+
+  return response.data;
+}
+
+export async function updateContentPillar(id: string, payload: Partial<ContentPillarPayload>) {
+  const response = await api.patch<ContentPillar>(`/content-pillars/${id}`, payload);
+
+  return response.data;
+}
+
+export async function deleteContentPillar(id: string) {
+  await api.delete(`/content-pillars/${id}`);
+}
+
+export async function getContentTemplates(clientId?: string) {
+  const response = await api.get<ContentTemplate[]>('/content-templates', {
+    params: clientId ? { clientId } : undefined,
+  });
+
+  return response.data;
+}
+
+export async function createContentTemplate(payload: ContentTemplatePayload) {
+  const response = await api.post<ContentTemplate>('/content-templates', payload);
+
+  return response.data;
+}
+
+export async function updateContentTemplate(id: string, payload: Partial<ContentTemplatePayload>) {
+  const response = await api.patch<ContentTemplate>(`/content-templates/${id}`, payload);
+
+  return response.data;
+}
+
+export async function deleteContentTemplate(id: string) {
+  await api.delete(`/content-templates/${id}`);
 }
