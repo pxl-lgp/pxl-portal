@@ -1,8 +1,10 @@
 "use client";
 
+import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import Link from "next/link";
 import {
+  AlertCircle,
   ArrowLeft,
   ArrowRight,
   BarChart3,
@@ -42,6 +44,8 @@ import { Progress } from "@/components/ui/progress";
 import { PxlLogo } from "@/components/site/pxl-logo";
 import { fireConfetti } from "@/lib/confetti";
 import { funnel } from "@/lib/content";
+import { createLead } from "@/lib/api";
+import { getApiErrorMessage } from "@/lib/errors";
 import { cn } from "@/lib/utils";
 
 const icons: Record<string, LucideIcon> = {
@@ -77,6 +81,23 @@ export function FunnelFlow() {
 
   const [phase, setPhase] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [contact, setContact] = useState({ name: "", email: "", company: "" });
+  const leadMutation = useMutation({
+    mutationFn: () =>
+      createLead({
+        businessName: contact.company.trim() || `${contact.name.trim()} website lead`,
+        contactPerson: contact.name.trim(),
+        email: contact.email.trim().toLowerCase(),
+        source: "website-funnel",
+        message: Object.entries(answers)
+          .map(([key, value]) => `${key}: ${value}`)
+          .join("\n"),
+      }),
+    onSuccess: () => {
+      setPhase(successPhase);
+      fireConfetti(window.innerWidth / 2, window.innerHeight / 3);
+    },
+  });
 
   const progress =
     phase === 0 ? 0 : Math.min(((phase - 1) / (contactPhase - 1)) * 100, 100);
@@ -89,8 +110,7 @@ export function FunnelFlow() {
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setPhase(successPhase);
-    fireConfetti(window.innerWidth / 2, window.innerHeight / 3);
+    leadMutation.mutate();
   };
 
   const recommendation =
@@ -241,29 +261,49 @@ export function FunnelFlow() {
             </p>
 
             <form onSubmit={handleSubmit} className="mx-auto mt-8 grid max-w-md gap-5">
+              {leadMutation.isError ? (
+                <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                  <AlertCircle className="mt-0.5 size-4 shrink-0" />
+                  {getApiErrorMessage(leadMutation.error, "Could not submit your details. Please try again.")}
+                </div>
+              ) : null}
               <div className="grid gap-2">
                 <Label htmlFor="funnel-name">Your name</Label>
-                <Input id="funnel-name" required placeholder="Juan dela Cruz" />
+                <Input
+                  id="funnel-name"
+                  onChange={(event) => setContact((current) => ({ ...current, name: event.target.value }))}
+                  required
+                  placeholder="Juan dela Cruz"
+                  value={contact.name}
+                />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="funnel-email">Email address</Label>
                 <Input
                   id="funnel-email"
+                  onChange={(event) => setContact((current) => ({ ...current, email: event.target.value }))}
                   type="email"
                   required
                   placeholder="you@company.com"
+                  value={contact.email}
                 />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="funnel-company">Business name (optional)</Label>
-                <Input id="funnel-company" placeholder="Your company" />
+                <Input
+                  id="funnel-company"
+                  onChange={(event) => setContact((current) => ({ ...current, company: event.target.value }))}
+                  placeholder="Your company"
+                  value={contact.company}
+                />
               </div>
               <Button
+                disabled={leadMutation.isPending}
                 type="submit"
                 size="lg"
                 className="rounded-full bg-white text-base text-[#0f0f0f] transition-transform hover:scale-[1.02] hover:bg-white/85 active:scale-95"
               >
-                {funnel.contactStep.submitCta}
+                {leadMutation.isPending ? "Submitting..." : funnel.contactStep.submitCta}
                 <Mail className="size-4" />
               </Button>
               <p className="flex items-center justify-center gap-1.5 text-center text-xs text-muted-foreground">

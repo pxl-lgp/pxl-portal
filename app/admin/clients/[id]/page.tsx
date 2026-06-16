@@ -7,6 +7,7 @@ import { useParams } from 'next/navigation';
 import { getClient, updateClient } from '@/lib/api';
 import { ClientPayload } from '@/lib/types';
 import { ClientForm } from '@/components/portal/client-form';
+import { ClientOnboardingPanel } from '@/components/portal/client-onboarding-panel';
 import { StatusBadge } from '@/components/portal/status-badge';
 import { getApiErrorMessage } from '@/lib/errors';
 import { DriveBrowser } from '@/components/portal/drive-browser';
@@ -76,6 +77,7 @@ export default function ClientDetailPage() {
         </div>
       ) : null}
 
+      <ClientOnboardingPanel client={client} />
       <ClientForm client={client} isSaving={updateMutation.isPending} onSubmit={(payload) => updateMutation.mutate(payload)} />
       <SocialConnectionsPanel clientId={client.id} />
       <DriveBrowser clientId={client.id} driveUrl={client.driveFolderUrl} />

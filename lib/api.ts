@@ -5,15 +5,20 @@ import {
   Asset,
   AssetPayload,
   Approval,
+  ApprovalComment,
+  ApprovalCommentPayload,
   ApprovalDecisionPayload,
   ApprovalPayload,
   AuthResponse,
   AnalyticsPayload,
   AnalyticsRecord,
+  AnalyzePerformancePayload,
   AiGenerationPayload,
   AiGenerationResponse,
   AssistResponse,
   BestTimeResult,
+  Campaign,
+  CampaignPayload,
   Client,
   ClientPortalOverview,
   ClientPayload,
@@ -102,6 +107,36 @@ export async function updateClient(id: string, payload: Partial<ClientPayload>) 
   return response.data;
 }
 
+export type CampaignFilters = {
+  clientId?: string;
+  status?: string;
+  q?: string;
+};
+
+export async function getCampaigns(filters: CampaignFilters = {}) {
+  const response = await api.get<Campaign[]>('/campaigns', { params: cleanParams(filters) });
+
+  return response.data;
+}
+
+export async function getCampaign(id: string) {
+  const response = await api.get<Campaign>(`/campaigns/${id}`);
+
+  return response.data;
+}
+
+export async function createCampaign(payload: CampaignPayload) {
+  const response = await api.post<Campaign>('/campaigns', payload);
+
+  return response.data;
+}
+
+export async function updateCampaign(id: string, payload: Partial<CampaignPayload>) {
+  const response = await api.patch<Campaign>(`/campaigns/${id}`, payload);
+
+  return response.data;
+}
+
 export async function getSocialConnections(clientId: string) {
   const response = await api.get<SocialConnection[]>(
     `/clients/${clientId}/social-connections`,
@@ -158,6 +193,7 @@ function cleanParams(filters: Record<string, string | undefined>) {
 
 export type ContentFilters = {
   clientId?: string;
+  campaignId?: string;
   status?: string;
   contentType?: string;
   q?: string;
@@ -217,6 +253,18 @@ export async function updateApproval(id: string, payload: ApprovalDecisionPayloa
   return response.data;
 }
 
+export async function getApprovalComments(id: string) {
+  const response = await api.get<ApprovalComment[]>(`/approvals/${id}/comments`);
+
+  return response.data;
+}
+
+export async function createApprovalComment(id: string, payload: ApprovalCommentPayload) {
+  const response = await api.post<ApprovalComment>(`/approvals/${id}/comments`, payload);
+
+  return response.data;
+}
+
 export async function generateCaption(payload: AiGenerationPayload) {
   const response = await api.post<AiGenerationResponse>('/ai/generate-caption', payload);
 
@@ -237,6 +285,12 @@ export async function generateReelScript(payload: AiGenerationPayload) {
 
 export async function generateBrief(payload: AiGenerationPayload) {
   const response = await api.post<AiGenerationResponse>('/ai/generate-brief', payload);
+
+  return response.data;
+}
+
+export async function analyzePerformance(payload: AnalyzePerformancePayload) {
+  const response = await api.post<AiGenerationResponse>('/ai/analyze-performance', payload);
 
   return response.data;
 }
@@ -370,6 +424,18 @@ export async function getClientPortalOverview() {
 
 export async function updateClientPortalApproval(id: string, payload: ApprovalDecisionPayload) {
   const response = await api.patch<Approval>(`/client-portal/approvals/${id}`, payload);
+
+  return response.data;
+}
+
+export async function getClientPortalApprovalComments(id: string) {
+  const response = await api.get<ApprovalComment[]>(`/client-portal/approvals/${id}/comments`);
+
+  return response.data;
+}
+
+export async function createClientPortalApprovalComment(id: string, payload: ApprovalCommentPayload) {
+  const response = await api.post<ApprovalComment>(`/client-portal/approvals/${id}/comments`, payload);
 
   return response.data;
 }

@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { getSocialConnections } from '@/lib/api';
+import { getCampaigns, getSocialConnections } from '@/lib/api';
 import {
   Client,
   ContentItem,
@@ -41,6 +41,7 @@ const statuses: ContentStatus[] = [
 
 type ContentFormValues = {
   clientId: string;
+  campaignId: string;
   title: string;
   contentType: string;
   socialTargets: SocialTarget[];
@@ -66,6 +67,7 @@ export function ContentForm({
   const initialValues = useMemo<ContentFormValues>(
     () => ({
       clientId: contentItem?.clientId ?? clients[0]?.id ?? '',
+      campaignId: contentItem?.campaignId ?? '',
       title: contentItem?.title ?? '',
       contentType: contentItem?.contentType ?? 'post',
       socialTargets: contentItem?.socialTargets ?? [],
@@ -85,6 +87,12 @@ export function ContentForm({
     queryFn: () => getSocialConnections(selectedClientId),
     enabled: Boolean(selectedClientId),
   });
+  const campaignsQuery = useQuery({
+    queryKey: ['campaigns', selectedClientId],
+    queryFn: () => getCampaigns({ clientId: selectedClientId }),
+    enabled: Boolean(selectedClientId),
+  });
+  const campaigns = campaignsQuery.data ?? [];
   const connections = (connectionsQuery.data ?? []).filter(
     (connection) => connection.status === 'CONNECTED',
   );
@@ -103,6 +111,7 @@ export function ContentForm({
     setValues((current) => ({
       ...current,
       clientId,
+      campaignId: clientId === contentItem?.clientId ? contentItem.campaignId ?? '' : '',
       socialTargets:
         clientId === contentItem?.clientId ? contentItem.socialTargets : [],
     }));
@@ -149,6 +158,7 @@ export function ContentForm({
 
     onSubmit({
       clientId: selectedClientId,
+      campaignId: values.campaignId || undefined,
       title: values.title.trim(),
       contentType: values.contentType.trim(),
       socialTargets: values.socialTargets,
@@ -200,6 +210,20 @@ export function ContentForm({
               required
               value={values.contentType}
             />
+            <Field label="Campaign">
+              <select
+                className="select"
+                onChange={(event) => updateValue('campaignId', event.target.value)}
+                value={values.campaignId}
+              >
+                <option value="">No campaign</option>
+                {campaigns.map((campaign) => (
+                  <option key={campaign.id} value={campaign.id}>
+                    {campaign.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
             <Field label="Status">
               <Select
                 onValueChange={(value) =>

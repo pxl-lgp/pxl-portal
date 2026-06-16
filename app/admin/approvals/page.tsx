@@ -4,9 +4,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, Check, CheckSquare, RefreshCw, RotateCcw } from 'lucide-react';
 import { FormEvent, useMemo, useState } from 'react';
 import { ApprovalStatusBadge } from '@/components/portal/approval-status-badge';
+import { ApprovalCommentsPanel } from '@/components/portal/approval-comments-panel';
 import { ContentStatusBadge } from '@/components/portal/content-status-badge';
 import {
   createApproval,
+  createApprovalComment,
+  getApprovalComments,
   getApprovals,
   getClients,
   getContentItems,
@@ -177,6 +180,12 @@ export default function ApprovalsPage() {
                         </div>
                       </div>
                     ) : null}
+                    <ApprovalCommentsPanel
+                      approvalId={approval.id}
+                      createComment={(approvalId, body) => createApprovalComment(approvalId, { body })}
+                      getComments={getApprovalComments}
+                      queryKeyPrefix="admin"
+                    />
                   </article>
                 );
               })}

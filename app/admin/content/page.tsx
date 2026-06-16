@@ -1,13 +1,13 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, FileText, RefreshCw } from 'lucide-react';
+import { AlertCircle, CheckSquare, FileText, RefreshCw, Send } from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ContentForm } from '@/components/portal/content-form';
 import { ContentStatusBadge } from '@/components/portal/content-status-badge';
-import { createContentItem, getClients, getContentItems } from '@/lib/api';
-import { ContentPayload } from '@/lib/types';
+import { createApproval, createContentItem, getCampaigns, getClients, getContentItems, scheduleContentItem, updateContentItem } from '@/lib/api';
+import { ContentPayload, ContentStatus } from '@/lib/types';
 import { getApiErrorMessage } from '@/lib/errors';
 
 const CONTENT_STATUSES = [
@@ -25,7 +25,10 @@ const CONTENT_STATUSES = [
 
 export default function ContentPage() {
   const queryClient = useQueryClient();
-  const [filters, setFilters] = useState({ clientId: '', status: '', q: '' });
+  const [filters, setFilters] = useState({ clientId: '', campaignId: '', status: '', q: '' });
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkStatus, setBulkStatus] = useState<ContentStatus>('DRAFTING');
+  const [bulkScheduledAt, setBulkScheduledAt] = useState('');
   const contentQuery = useQuery({
     queryKey: ['content', filters],
     queryFn: () => getContentItems(filters),
@@ -34,15 +37,61 @@ export default function ContentPage() {
     queryKey: ['clients'],
     queryFn: getClients,
   });
+  const campaignsQuery = useQuery({
+    queryKey: ['campaigns'],
+    queryFn: () => getCampaigns(),
+  });
   const createMutation = useMutation({
     mutationFn: (payload: ContentPayload) => createContentItem(payload),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['content'] });
     },
   });
-  const contentItems = contentQuery.data ?? [];
-  const clients = clientsQuery.data ?? [];
+  const contentItems = useMemo(() => contentQuery.data ?? [], [contentQuery.data]);
+  const clients = useMemo(() => clientsQuery.data ?? [], [clientsQuery.data]);
+  const campaigns = useMemo(() => campaignsQuery.data ?? [], [campaignsQuery.data]);
   const clientById = new Map(clients.map((client) => [client.id, client]));
+  const campaignById = new Map(campaigns.map((campaign) => [campaign.id, campaign]));
+  const selectedItems = useMemo(
+    () => contentItems.filter((item) => selectedIds.includes(item.id)),
+    [contentItems, selectedIds],
+  );
+  const allVisibleSelected = contentItems.length > 0 && contentItems.every((item) => selectedIds.includes(item.id));
+  const bulkStatusMutation = useMutation({
+    mutationFn: async () => {
+      await Promise.all(selectedItems.map((item) => updateContentItem(item.id, { status: bulkStatus, clientId: item.clientId, title: item.title, contentType: item.contentType })));
+    },
+    onSuccess: handleBulkSuccess,
+  });
+  const bulkScheduleMutation = useMutation({
+    mutationFn: async () => {
+      const scheduledAt = new Date(bulkScheduledAt).toISOString();
+      await Promise.all(selectedItems.map((item) => scheduleContentItem(item.id, scheduledAt)));
+    },
+    onSuccess: handleBulkSuccess,
+  });
+  const bulkApprovalMutation = useMutation({
+    mutationFn: async () => {
+      await Promise.all(selectedItems.map((item) => createApproval({ contentItemId: item.id })));
+    },
+    onSuccess: handleBulkSuccess,
+  });
+  const bulkError = bulkStatusMutation.error ?? bulkScheduleMutation.error ?? bulkApprovalMutation.error;
+  const isBulkBusy = bulkStatusMutation.isPending || bulkScheduleMutation.isPending || bulkApprovalMutation.isPending;
+
+  async function handleBulkSuccess() {
+    setSelectedIds([]);
+    await queryClient.invalidateQueries({ queryKey: ['content'] });
+    await queryClient.invalidateQueries({ queryKey: ['approvals'] });
+  }
+
+  function toggleSelected(id: string, checked: boolean) {
+    setSelectedIds((current) => checked ? [...new Set([...current, id])] : current.filter((item) => item !== id));
+  }
+
+  function toggleAllVisible(checked: boolean) {
+    setSelectedIds(checked ? contentItems.map((item) => item.id) : []);
+  }
 
   return (
     <>
@@ -62,7 +111,39 @@ export default function ContentPage() {
           <div className="border-b border-[var(--border)] p-5">
             <h2 className="font-black">Content list</h2>
           </div>
-          <div className="grid gap-3 border-b border-[var(--border)] p-4 sm:grid-cols-3">
+          <div className="grid gap-3 border-b border-[var(--border)] bg-[var(--panel-muted)] p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="text-sm font-semibold">
+                {selectedIds.length} selected
+              </div>
+              <button className="button button-secondary" disabled={selectedIds.length === 0 || isBulkBusy} onClick={() => setSelectedIds([])} type="button">
+                Clear selection
+              </button>
+            </div>
+            {bulkError ? <ErrorPanel message={getApiErrorMessage(bulkError, 'Bulk action failed.')} /> : null}
+            <div className="grid gap-3 lg:grid-cols-[1fr_1fr_auto]">
+              <select className="select" onChange={(event) => setBulkStatus(event.target.value as ContentStatus)} value={bulkStatus}>
+                {CONTENT_STATUSES.map((status) => (
+                  <option key={status} value={status}>{status}</option>
+                ))}
+              </select>
+              <button className="button button-secondary" disabled={selectedIds.length === 0 || isBulkBusy} onClick={() => bulkStatusMutation.mutate()} type="button">
+                <CheckSquare className="h-4 w-4" />
+                Apply status
+              </button>
+              <button className="button button-primary" disabled={selectedIds.length === 0 || isBulkBusy} onClick={() => bulkApprovalMutation.mutate()} type="button">
+                <Send className="h-4 w-4" />
+                Send for approval
+              </button>
+            </div>
+            <div className="grid gap-3 lg:grid-cols-[1fr_auto]">
+              <input className="input" onChange={(event) => setBulkScheduledAt(event.target.value)} type="datetime-local" value={bulkScheduledAt} />
+              <button className="button button-secondary" disabled={selectedIds.length === 0 || !bulkScheduledAt || isBulkBusy} onClick={() => bulkScheduleMutation.mutate()} type="button">
+                Schedule selected
+              </button>
+            </div>
+          </div>
+          <div className="grid gap-3 border-b border-[var(--border)] p-4 sm:grid-cols-4">
             <select
               className="select"
               onChange={(event) => setFilters((current) => ({ ...current, clientId: event.target.value }))}
@@ -74,6 +155,20 @@ export default function ContentPage() {
                   {client.businessName}
                 </option>
               ))}
+            </select>
+            <select
+              className="select"
+              onChange={(event) => setFilters((current) => ({ ...current, campaignId: event.target.value }))}
+              value={filters.campaignId}
+            >
+              <option value="">All campaigns</option>
+              {campaigns
+                .filter((campaign) => !filters.clientId || campaign.clientId === filters.clientId)
+                .map((campaign) => (
+                  <option key={campaign.id} value={campaign.id}>
+                    {campaign.name}
+                  </option>
+                ))}
             </select>
             <select
               className="select"
@@ -105,8 +200,17 @@ export default function ContentPage() {
               <table className="w-full border-collapse text-left text-sm">
                 <thead className="bg-[var(--panel-muted)] text-xs uppercase text-muted-foreground">
                   <tr>
+                    <th className="px-4 py-3">
+                      <input
+                        aria-label="Select all visible content"
+                        checked={allVisibleSelected}
+                        onChange={(event) => toggleAllVisible(event.target.checked)}
+                        type="checkbox"
+                      />
+                    </th>
                     <th className="px-4 py-3">Title</th>
                     <th className="px-4 py-3">Client</th>
+                    <th className="px-4 py-3">Campaign</th>
                     <th className="px-4 py-3">Status</th>
                     <th className="px-4 py-3">Schedule</th>
                   </tr>
@@ -114,6 +218,14 @@ export default function ContentPage() {
                 <tbody>
                   {contentItems.map((item) => (
                     <tr className="border-t border-[var(--border)]" key={item.id}>
+                      <td className="px-4 py-3">
+                        <input
+                          aria-label={`Select ${item.title}`}
+                          checked={selectedIds.includes(item.id)}
+                          onChange={(event) => toggleSelected(item.id, event.target.checked)}
+                          type="checkbox"
+                        />
+                      </td>
                       <td className="px-4 py-3">
                         <Link className="font-bold text-[var(--brand-dark)]" href={`/admin/content/${item.id}`}>
                           {item.title}
@@ -125,6 +237,9 @@ export default function ContentPage() {
                       </td>
                       <td className="px-4 py-3">
                         {clientById.get(item.clientId)?.businessName ?? 'Unknown client'}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {item.campaignId ? campaignById.get(item.campaignId)?.name ?? 'Unknown campaign' : 'No campaign'}
                       </td>
                       <td className="px-4 py-3">
                         <ContentStatusBadge status={item.status} />

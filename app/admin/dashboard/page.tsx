@@ -31,7 +31,7 @@ import { getApprovals, getAutomationLogs, getClients, getContentItems } from "@/
 
 export default function DashboardPage() {
   const clientsQuery = useQuery({ queryKey: ["clients"], queryFn: getClients });
-  const logsQuery = useQuery({ queryKey: ["automation", "logs"], queryFn: getAutomationLogs });
+  const logsQuery = useQuery({ queryKey: ["automation", "logs"], queryFn: () => getAutomationLogs() });
   const contentQuery = useQuery({ queryKey: ["content"], queryFn: () => getContentItems() });
   const approvalsQuery = useQuery({ queryKey: ["approvals"], queryFn: getApprovals });
   const clients = clientsQuery.data ?? [];

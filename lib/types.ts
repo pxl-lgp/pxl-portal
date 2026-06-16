@@ -54,6 +54,37 @@ export type ClientPayload = {
   driveFolderUrl?: string;
 };
 
+export type CampaignStatus = 'PLANNED' | 'ACTIVE' | 'PAUSED' | 'COMPLETED';
+
+export type Campaign = {
+  id: string;
+  clientId: string;
+  name: string;
+  status: CampaignStatus;
+  goal: string | null;
+  budget: string | null;
+  audience: string | null;
+  offer: string | null;
+  notes: string | null;
+  startsAt: string | null;
+  endsAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CampaignPayload = {
+  clientId: string;
+  name: string;
+  status?: CampaignStatus;
+  goal?: string;
+  budget?: string;
+  audience?: string;
+  offer?: string;
+  notes?: string;
+  startsAt?: string;
+  endsAt?: string;
+};
+
 export type AutomationStatus = 'PENDING' | 'SENT' | 'SUCCEEDED' | 'FAILED';
 
 export type AutomationLog = {
@@ -121,6 +152,7 @@ export type MetaOauthUrlResponse = {
 export type ContentItem = {
   id: string;
   clientId: string;
+  campaignId: string | null;
   title: string;
   contentType: string;
   platform: string | null;
@@ -139,6 +171,7 @@ export type ContentItem = {
 
 export type ContentPayload = {
   clientId: string;
+  campaignId?: string;
   title: string;
   contentType: string;
   platform?: string;
@@ -166,6 +199,18 @@ export type Approval = {
   updatedAt: string;
 };
 
+export type ApprovalComment = {
+  id: string;
+  approvalId: string;
+  clientId: string;
+  authorUserId: string | null;
+  authorName: string;
+  authorRole: UserRole;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type ApprovalPayload = {
   contentItemId: string;
 };
@@ -173,6 +218,10 @@ export type ApprovalPayload = {
 export type ApprovalDecisionPayload = {
   status: 'APPROVED' | 'REVISION_REQUESTED';
   feedback?: string;
+};
+
+export type ApprovalCommentPayload = {
+  body: string;
 };
 
 export type AiLanguage = 'EN' | 'TAGLISH';
@@ -198,6 +247,26 @@ export type AiGenerationResponse = {
   provider: string;
   model: string;
   output: string;
+};
+
+export type PerformanceMetrics = {
+  reach?: number;
+  impressions?: number;
+  engagement?: number;
+  clicks?: number;
+  likes?: number;
+  comments?: number;
+  shares?: number;
+  saves?: number;
+  followersGained?: number;
+};
+
+export type AnalyzePerformancePayload = {
+  clientName: string;
+  contentTitle?: string;
+  platform?: string;
+  contentType?: string;
+  metrics: PerformanceMetrics;
 };
 
 export type AnalyticsRecord = {

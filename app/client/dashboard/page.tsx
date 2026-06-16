@@ -6,9 +6,15 @@ import { FormEvent, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ApprovalStatusBadge } from '@/components/portal/approval-status-badge';
+import { ApprovalCommentsPanel } from '@/components/portal/approval-comments-panel';
 import { ContentStatusBadge } from '@/components/portal/content-status-badge';
 import { StatusBadge } from '@/components/portal/status-badge';
-import { getClientPortalOverview, updateClientPortalApproval } from '@/lib/api';
+import {
+  createClientPortalApprovalComment,
+  getClientPortalApprovalComments,
+  getClientPortalOverview,
+  updateClientPortalApproval,
+} from '@/lib/api';
 import { getApiErrorMessage } from '@/lib/errors';
 import { Approval, ApprovalDecisionPayload } from '@/lib/types';
 
@@ -170,6 +176,12 @@ export default function ClientDashboardPage() {
                       </form>
                     </div>
                   ) : null}
+                  <ApprovalCommentsPanel
+                    approvalId={approval.id}
+                    createComment={(approvalId, body) => createClientPortalApprovalComment(approvalId, { body })}
+                    getComments={getClientPortalApprovalComments}
+                    queryKeyPrefix="client"
+                  />
                 </article>
               );
             })}
