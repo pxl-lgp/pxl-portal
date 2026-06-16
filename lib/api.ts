@@ -150,8 +150,21 @@ export async function retryAutomationLog(id: string) {
   return response.data;
 }
 
-export async function getContentItems() {
-  const response = await api.get<ContentItem[]>('/content');
+function cleanParams(filters: Record<string, string | undefined>) {
+  return Object.fromEntries(
+    Object.entries(filters).filter(([, value]) => value != null && value !== ''),
+  );
+}
+
+export type ContentFilters = {
+  clientId?: string;
+  status?: string;
+  contentType?: string;
+  q?: string;
+};
+
+export async function getContentItems(filters: ContentFilters = {}) {
+  const response = await api.get<ContentItem[]>('/content', { params: cleanParams(filters) });
 
   return response.data;
 }
@@ -324,8 +337,15 @@ export async function convertLead(id: string) {
   return response.data;
 }
 
-export async function getAssets() {
-  const response = await api.get<Asset[]>('/assets');
+export type AssetFilters = {
+  clientId?: string;
+  contentItemId?: string;
+  assetType?: string;
+  q?: string;
+};
+
+export async function getAssets(filters: AssetFilters = {}) {
+  const response = await api.get<Asset[]>('/assets', { params: cleanParams(filters) });
 
   return response.data;
 }

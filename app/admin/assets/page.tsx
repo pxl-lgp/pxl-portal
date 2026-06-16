@@ -29,9 +29,10 @@ const emptyValues: AssetFormValues = {
 
 export default function AssetsPage() {
   const queryClient = useQueryClient();
+  const [filters, setFilters] = useState({ clientId: '', assetType: '', q: '' });
   const assetsQuery = useQuery({
-    queryKey: ['assets'],
-    queryFn: getAssets,
+    queryKey: ['assets', filters],
+    queryFn: () => getAssets(filters),
   });
   const clientsQuery = useQuery({
     queryKey: ['clients'],
@@ -39,7 +40,7 @@ export default function AssetsPage() {
   });
   const contentQuery = useQuery({
     queryKey: ['content'],
-    queryFn: getContentItems,
+    queryFn: () => getContentItems(),
   });
   const assets = useMemo(() => assetsQuery.data ?? [], [assetsQuery.data]);
   const clients = useMemo(() => clientsQuery.data ?? [], [clientsQuery.data]);
@@ -110,6 +111,32 @@ export default function AssetsPage() {
           <div className="flex items-center gap-2 border-b border-[var(--border)] p-5">
             <Archive className="h-5 w-5 text-[var(--brand)]" />
             <h2 className="font-black">Asset list</h2>
+          </div>
+          <div className="grid gap-3 border-b border-[var(--border)] p-4 sm:grid-cols-3">
+            <select
+              className="select"
+              onChange={(event) => setFilters((current) => ({ ...current, clientId: event.target.value }))}
+              value={filters.clientId}
+            >
+              <option value="">All clients</option>
+              {clients.map((client) => (
+                <option key={client.id} value={client.id}>
+                  {client.businessName}
+                </option>
+              ))}
+            </select>
+            <input
+              className="input"
+              onChange={(event) => setFilters((current) => ({ ...current, assetType: event.target.value }))}
+              placeholder="Filter by type"
+              value={filters.assetType}
+            />
+            <input
+              className="input"
+              onChange={(event) => setFilters((current) => ({ ...current, q: event.target.value }))}
+              placeholder="Search name"
+              value={filters.q}
+            />
           </div>
           {assetsQuery.isError ? (
             <ErrorPanel message="Unable to load assets." />

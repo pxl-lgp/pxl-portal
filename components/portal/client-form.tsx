@@ -150,7 +150,7 @@ export function ClientForm({
               value={values.driveFolderUrl}
             />
             <p className="text-xs text-muted-foreground">
-              Normally filled automatically by the client-created n8n workflow.
+              Normally filled automatically when the client is created.
             </p>
           </div>
         ) : null}

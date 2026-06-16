@@ -3,17 +3,32 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, FileText, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
+import { useState } from 'react';
 import { ContentForm } from '@/components/portal/content-form';
 import { ContentStatusBadge } from '@/components/portal/content-status-badge';
 import { createContentItem, getClients, getContentItems } from '@/lib/api';
 import { ContentPayload } from '@/lib/types';
 import { getApiErrorMessage } from '@/lib/errors';
 
+const CONTENT_STATUSES = [
+  'IDEA',
+  'DRAFTING',
+  'DESIGNING',
+  'INTERNAL_REVIEW',
+  'CLIENT_APPROVAL',
+  'APPROVED',
+  'REVISION_REQUESTED',
+  'SCHEDULED',
+  'PUBLISHED',
+  'REPORTED',
+];
+
 export default function ContentPage() {
   const queryClient = useQueryClient();
+  const [filters, setFilters] = useState({ clientId: '', status: '', q: '' });
   const contentQuery = useQuery({
-    queryKey: ['content'],
-    queryFn: getContentItems,
+    queryKey: ['content', filters],
+    queryFn: () => getContentItems(filters),
   });
   const clientsQuery = useQuery({
     queryKey: ['clients'],
@@ -46,6 +61,38 @@ export default function ContentPage() {
         <div className="panel overflow-hidden">
           <div className="border-b border-[var(--border)] p-5">
             <h2 className="font-black">Content list</h2>
+          </div>
+          <div className="grid gap-3 border-b border-[var(--border)] p-4 sm:grid-cols-3">
+            <select
+              className="select"
+              onChange={(event) => setFilters((current) => ({ ...current, clientId: event.target.value }))}
+              value={filters.clientId}
+            >
+              <option value="">All clients</option>
+              {clients.map((client) => (
+                <option key={client.id} value={client.id}>
+                  {client.businessName}
+                </option>
+              ))}
+            </select>
+            <select
+              className="select"
+              onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))}
+              value={filters.status}
+            >
+              <option value="">All statuses</option>
+              {CONTENT_STATUSES.map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
+            </select>
+            <input
+              className="input"
+              onChange={(event) => setFilters((current) => ({ ...current, q: event.target.value }))}
+              placeholder="Search title"
+              value={filters.q}
+            />
           </div>
           {contentQuery.isError ? (
             <ErrorPanel message="Unable to load content." />
