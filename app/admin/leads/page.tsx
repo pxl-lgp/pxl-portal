@@ -1,10 +1,23 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, CheckCircle2, RefreshCw, RotateCcw, UserCheck, UserPlus, XCircle } from 'lucide-react';
+import {
+  AlertCircle,
+  ArrowDownWideNarrow,
+  CheckCircle2,
+  Clock3,
+  RefreshCw,
+  RotateCcw,
+  UserCheck,
+  UserPlus,
+  XCircle,
+} from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { convertLead, getLeads, updateLead } from '@/lib/api';
 import { getApiErrorMessage } from '@/lib/errors';
-import { Lead, LeadStatus } from '@/lib/types';
+import { Lead, LeadScoreBand, LeadStatus } from '@/lib/types';
+
+type SortMode = 'score' | 'recent';
 
 const statusActions: Array<{ label: string; status: LeadStatus; icon: React.ReactNode }> = [
   { label: 'Contacted', status: 'CONTACTED', icon: <UserCheck className="h-4 w-4" /> },
@@ -34,7 +47,18 @@ export default function LeadsPage() {
       ]);
     },
   });
-  const leads = leadsQuery.data ?? [];
+  const [sortMode, setSortMode] = useState<SortMode>('score');
+  const leads = useMemo(() => {
+    const rows = [...(leadsQuery.data ?? [])];
+
+    if (sortMode === 'score') {
+      return rows.sort(
+        (a, b) => b.score - a.score || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
+    }
+
+    return rows.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [leadsQuery.data, sortMode]);
 
   return (
     <>
@@ -43,10 +67,20 @@ export default function LeadsPage() {
           <h1 className="text-2xl font-black">Leads</h1>
           <p className="mt-1 text-sm text-muted-foreground">Review inquiries, qualify prospects, and convert wins</p>
         </div>
-        <button className="button button-secondary" onClick={() => leadsQuery.refetch()} type="button">
-          <RefreshCw className="h-4 w-4" />
-          Refresh
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            className="button button-secondary"
+            onClick={() => setSortMode((current) => (current === 'score' ? 'recent' : 'score'))}
+            type="button"
+          >
+            {sortMode === 'score' ? <ArrowDownWideNarrow className="h-4 w-4" /> : <Clock3 className="h-4 w-4" />}
+            Sort: {sortMode === 'score' ? 'Hottest first' : 'Most recent'}
+          </button>
+          <button className="button button-secondary" onClick={() => leadsQuery.refetch()} type="button">
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {updateMutation.isError ? (
@@ -105,12 +139,27 @@ function LeadRow({
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="font-black">{lead.businessName}</h3>
+            <span className={`badge ${scoreBandClass(lead.scoreBand)}`} title={`Lead score ${lead.score}/100`}>
+              {lead.scoreBand} · {lead.score}
+            </span>
             <span className={`badge ${statusClass(lead.status)}`}>{lead.status}</span>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
             {lead.contactPerson ?? 'No contact name'} / {lead.email}
             {lead.phone ? ` / ${lead.phone}` : ''}
           </p>
+          {lead.scoreReasons.length > 0 ? (
+            <ul className="mt-3 flex flex-wrap gap-2">
+              {lead.scoreReasons.map((reason) => (
+                <li
+                  className="rounded-full border border-[var(--border)] bg-[var(--panel-muted)] px-3 py-1 text-xs text-foreground/70"
+                  key={reason}
+                >
+                  {reason}
+                </li>
+              ))}
+            </ul>
+          ) : null}
           {lead.message ? <p className="mt-3 text-sm text-foreground/80">{lead.message}</p> : null}
           <p className="mt-2 text-xs font-bold uppercase text-muted-foreground">
             {lead.source ?? 'Unknown source'} / {new Date(lead.createdAt).toLocaleString()}
@@ -151,6 +200,18 @@ function ErrorPanel({ message }: { message: string }) {
       {message}
     </div>
   );
+}
+
+function scoreBandClass(band: LeadScoreBand) {
+  if (band === 'HOT') {
+    return 'bg-red-100 text-red-800';
+  }
+
+  if (band === 'WARM') {
+    return 'bg-amber-100 text-amber-800';
+  }
+
+  return 'bg-slate-100 text-slate-700';
 }
 
 function statusClass(status: LeadStatus) {

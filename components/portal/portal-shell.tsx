@@ -7,10 +7,12 @@ import {
   Building2,
   CalendarDays,
   CheckSquare,
+  Cog,
   FileCheck2,
   FileText,
   FolderOpen,
   LayoutDashboard,
+  LayoutTemplate,
   LineChart,
   LogOut,
   Megaphone,
@@ -49,11 +51,21 @@ import {
 } from "@/components/ui/sidebar";
 import { getCurrentUser } from "@/lib/api";
 import { clearAccessToken } from "@/lib/auth";
+import { UserRole } from "@/lib/types";
 
-const adminItems = [
+type NavItem = {
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  // When set, the entry is only shown to these roles. Otherwise visible to the whole area.
+  roles?: UserRole[];
+};
+
+const adminItems: NavItem[] = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/clients", label: "Clients", icon: Building2 },
   { href: "/admin/content", label: "Content", icon: FileText },
+  { href: "/admin/content-templates", label: "Templates", icon: LayoutTemplate },
   { href: "/admin/calendar", label: "Calendar", icon: CalendarDays },
   { href: "/admin/campaigns", label: "Campaigns", icon: Megaphone },
   { href: "/admin/approvals", label: "Approvals", icon: CheckSquare },
@@ -61,10 +73,11 @@ const adminItems = [
   { href: "/admin/reports", label: "Reports", icon: ScrollText },
   { href: "/admin/leads", label: "Leads", icon: UserPlus },
   { href: "/admin/assets", label: "Assets", icon: Archive },
-  { href: "/admin/users", label: "Users", icon: UserCog },
+  { href: "/admin/automation", label: "Automation", icon: Cog },
+  { href: "/admin/users", label: "Users", icon: UserCog, roles: ["ADMIN"] },
 ];
 
-const clientItems = [
+const clientItems: NavItem[] = [
   { href: "/client/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/client/files", label: "Files", icon: FolderOpen },
   { href: "/client/dashboard#approvals", label: "Approvals", icon: FileCheck2 },
@@ -85,11 +98,14 @@ export function PortalShell({
     queryKey: ["auth", "me"],
     queryFn: getCurrentUser,
   });
-  const items = mode === "admin" ? adminItems : clientItems;
-  const currentItem =
-    items.find((item) => !item.href.includes("#") && pathname.startsWith(item.href)) ??
-    items[0];
   const user = userQuery.data;
+  const items = (mode === "admin" ? adminItems : clientItems).filter(
+    (item) => !item.roles || (user ? item.roles.includes(user.role) : false),
+  );
+  // Match exact path or a nested route, so "/admin/content" doesn't claim "/admin/content-templates".
+  const matchesPath = (href: string) =>
+    !href.includes("#") && (pathname === href || pathname.startsWith(`${href}/`));
+  const currentItem = items.find((item) => matchesPath(item.href)) ?? items[0];
   const initials = (user?.name ?? "PXL User")
     .split(/\s+/)
     .map((part) => part[0])
@@ -141,9 +157,7 @@ export function PortalShell({
               <SidebarMenu>
                 {items.map((item) => {
                   const Icon = item.icon;
-                  const isActive = item.href.includes("#")
-                    ? false
-                    : pathname.startsWith(item.href);
+                  const isActive = matchesPath(item.href);
 
                   return (
                     <SidebarMenuItem key={item.href}>

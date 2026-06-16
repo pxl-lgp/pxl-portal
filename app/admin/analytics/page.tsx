@@ -6,6 +6,7 @@ import { FormEvent, useMemo, useState } from 'react';
 import { analyzePerformance, createAnalyticsRecord, getAnalyticsRecords, getClients, getContentItems } from '@/lib/api';
 import { getApiErrorMessage } from '@/lib/errors';
 import { AnalyticsPayload } from '@/lib/types';
+import { BestTimePanel } from '@/components/portal/best-time-panel';
 
 type AnalyticsFormValues = {
   contentItemId: string;
@@ -183,6 +184,8 @@ export default function AnalyticsPage() {
           </div>
         ) : null}
       </section>
+
+      <BestTimePanel clients={clients} />
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
         <div className="panel overflow-hidden">

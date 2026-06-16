@@ -14,6 +14,7 @@ import { FinalCta } from "@/components/site/final-cta";
 import { Contact } from "@/components/site/contact";
 import { Footer } from "@/components/site/footer";
 import { BackToTop } from "@/components/site/back-to-top";
+import { ChatWidget } from "@/components/site/chat-widget";
 
 export default function Home() {
   return (
@@ -34,6 +35,7 @@ export default function Home() {
       <Contact />
       <Footer />
       <BackToTop />
+      <ChatWidget />
     </main>
   );
 }

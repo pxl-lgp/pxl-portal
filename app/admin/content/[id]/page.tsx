@@ -7,6 +7,7 @@ import { useParams } from 'next/navigation';
 import { AiAssistantPanel } from '@/components/portal/ai-assistant-panel';
 import { ContentForm } from '@/components/portal/content-form';
 import { ContentStatusBadge } from '@/components/portal/content-status-badge';
+import { ContentTemplatePicker } from '@/components/portal/content-template-picker';
 import { PlatformPreviewPanel } from '@/components/portal/platform-preview-panel';
 import { PublishingPanel } from '@/components/portal/publishing-panel';
 import { getClients, getContentItem, updateContentItem } from '@/lib/api';
@@ -82,6 +83,18 @@ export default function ContentDetailPage() {
         contentItem={contentItem}
         isSaving={updateMutation.isPending}
         onSubmit={(payload) => updateMutation.mutate(payload)}
+      />
+
+      <ContentTemplatePicker
+        clientId={contentItem.clientId}
+        onApply={(body) =>
+          updateMutation.mutate({
+            clientId: contentItem.clientId,
+            title: contentItem.title,
+            contentType: contentItem.contentType,
+            caption: body,
+          })
+        }
       />
 
       <PlatformPreviewPanel contentItem={contentItem} />

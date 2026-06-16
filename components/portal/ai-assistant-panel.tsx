@@ -1,29 +1,60 @@
 'use client';
 
 import { useMutation } from '@tanstack/react-query';
-import { Bot, Clipboard, Hash, MessageSquareText, ScrollText, Sparkles } from 'lucide-react';
+import {
+  Bot,
+  Clapperboard,
+  Clipboard,
+  Hash,
+  Layers,
+  LayoutTemplate,
+  MessageSquareText,
+  ScrollText,
+  Sparkles,
+  Tags,
+} from 'lucide-react';
 import { useState } from 'react';
 import {
   generateBrief,
+  generateBroll,
   generateCaption,
   generateHashtags,
+  generateOverlay,
   generateReelScript,
+  generateTags,
+  generateTemplate,
 } from '@/lib/api';
-import { Client, ContentItem } from '@/lib/types';
+import { AiGenerationPayload, Client, ContentItem } from '@/lib/types';
 import { getApiErrorMessage } from '@/lib/errors';
 
-type AiTask = 'caption' | 'hashtags' | 'reel-script' | 'brief';
+type AiTask =
+  | 'caption'
+  | 'hashtags'
+  | 'reel-script'
+  | 'brief'
+  | 'broll'
+  | 'overlay'
+  | 'tags'
+  | 'template';
 
 const tasks: Array<{
   id: AiTask;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
+  generate: (payload: AiGenerationPayload) => ReturnType<typeof generateCaption>;
 }> = [
-  { id: 'caption', label: 'Caption', icon: MessageSquareText },
-  { id: 'hashtags', label: 'Hashtags', icon: Hash },
-  { id: 'reel-script', label: 'Reel script', icon: ScrollText },
-  { id: 'brief', label: 'Brief', icon: Clipboard },
+  { id: 'caption', label: 'Caption', icon: MessageSquareText, generate: generateCaption },
+  { id: 'hashtags', label: 'Hashtags', icon: Hash, generate: generateHashtags },
+  { id: 'reel-script', label: 'Reel script', icon: ScrollText, generate: generateReelScript },
+  { id: 'brief', label: 'Brief', icon: Clipboard, generate: generateBrief },
+  { id: 'broll', label: 'B-roll', icon: Clapperboard, generate: generateBroll },
+  { id: 'overlay', label: 'Overlay', icon: Layers, generate: generateOverlay },
+  { id: 'tags', label: 'Tags', icon: Tags, generate: generateTags },
+  { id: 'template', label: 'Template', icon: LayoutTemplate, generate: generateTemplate },
 ];
+
+// Outputs that can be pushed back onto the content item as hashtags.
+const hashtagTasks: AiTask[] = ['hashtags', 'tags'];
 
 export function AiAssistantPanel({
   client,
@@ -39,9 +70,11 @@ export function AiAssistantPanel({
   const [task, setTask] = useState<AiTask>('caption');
   const [output, setOutput] = useState('');
   const [meta, setMeta] = useState('');
+  const [taglish, setTaglish] = useState(false);
+  const [seo, setSeo] = useState(false);
   const mutation = useMutation({
     mutationFn: async (selectedTask: AiTask) => {
-      const payload = {
+      const payload: AiGenerationPayload = {
         clientName: client?.businessName ?? 'Unknown client',
         industry: client?.industry ?? undefined,
         contentTitle: contentItem.title,
@@ -52,21 +85,13 @@ export function AiAssistantPanel({
         context: contentItem.caption ?? undefined,
         tone: 'clear, practical, brand-safe',
         hashtags: contentItem.hashtags,
+        language: taglish ? 'TAGLISH' : 'EN',
+        seo,
       };
 
-      if (selectedTask === 'caption') {
-        return generateCaption(payload);
-      }
+      const handler = tasks.find((item) => item.id === selectedTask) ?? tasks[0];
 
-      if (selectedTask === 'hashtags') {
-        return generateHashtags(payload);
-      }
-
-      if (selectedTask === 'reel-script') {
-        return generateReelScript(payload);
-      }
-
-      return generateBrief(payload);
+      return handler.generate(payload);
     },
     onSuccess: (data, selectedTask) => {
       setTask(selectedTask);
@@ -84,20 +109,40 @@ export function AiAssistantPanel({
       onApplyCaption(output);
     }
 
-    if (task === 'hashtags') {
+    if (hashtagTasks.includes(task)) {
       onApplyHashtags(parseHashtags(output));
     }
   }
 
+  const canApply = output !== '' && (task === 'caption' || hashtagTasks.includes(task));
+
   return (
     <section className="panel grid gap-4 p-5">
-      <div className="flex items-center gap-2">
-        <Bot className="h-5 w-5 text-[var(--brand)]" />
-        <h2 className="font-black">AI assistant</h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Bot className="h-5 w-5 text-[var(--brand)]" />
+          <h2 className="font-black">AI assistant</h2>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Toggle
+            active={taglish}
+            label="Taglish"
+            onToggle={() => setTaglish((current) => !current)}
+            title="Generate in conversational Taglish instead of English"
+          />
+          <Toggle
+            active={seo}
+            label="SEO"
+            onToggle={() => setSeo((current) => !current)}
+            title="Bias output toward keyword-rich, search-friendly phrasing"
+          />
+        </div>
       </div>
+
       <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
         {tasks.map((item) => {
           const Icon = item.icon;
+          const isRunning = mutation.isPending && mutation.variables === item.id;
 
           return (
             <button
@@ -108,7 +153,7 @@ export function AiAssistantPanel({
               type="button"
             >
               <Icon className="h-4 w-4" />
-              {item.label}
+              {isRunning ? 'Working' : item.label}
             </button>
           );
         })}
@@ -134,15 +179,43 @@ export function AiAssistantPanel({
       <div className="flex flex-wrap justify-end gap-2">
         <button
           className="button button-secondary"
-          disabled={!output || !['caption', 'hashtags'].includes(task)}
+          disabled={!canApply}
           onClick={applyOutput}
           type="button"
         >
           <Sparkles className="h-4 w-4" />
-          Apply draft
+          {task === 'caption' ? 'Apply as caption' : 'Apply as hashtags'}
         </button>
       </div>
     </section>
+  );
+}
+
+function Toggle({
+  active,
+  label,
+  onToggle,
+  title,
+}: {
+  active: boolean;
+  label: string;
+  onToggle: () => void;
+  title: string;
+}) {
+  return (
+    <button
+      aria-pressed={active}
+      className={`badge cursor-pointer border transition-colors ${
+        active
+          ? 'border-transparent bg-[var(--brand)] text-white'
+          : 'border-[var(--border)] bg-[var(--panel-muted)] text-foreground/70'
+      }`}
+      onClick={onToggle}
+      title={title}
+      type="button"
+    >
+      {label}
+    </button>
   );
 }
 

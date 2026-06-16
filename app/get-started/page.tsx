@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { FunnelFlow } from "@/components/funnel/funnel-flow";
+import { ChatWidget } from "@/components/site/chat-widget";
 
 export const metadata: Metadata = {
   title: "Get Your Free Growth Plan — PXL Digital Marketing",
@@ -9,5 +10,10 @@ export const metadata: Metadata = {
 };
 
 export default function GetStartedPage() {
-  return <FunnelFlow />;
+  return (
+    <>
+      <FunnelFlow />
+      <ChatWidget />
+    </>
+  );
 }
