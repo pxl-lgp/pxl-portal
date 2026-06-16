@@ -175,6 +175,8 @@ export type ApprovalDecisionPayload = {
   feedback?: string;
 };
 
+export type AiLanguage = 'EN' | 'TAGLISH';
+
 export type AiGenerationPayload = {
   clientName: string;
   industry?: string;
@@ -186,7 +188,11 @@ export type AiGenerationPayload = {
   context?: string;
   tone?: string;
   hashtags?: string[];
+  language?: AiLanguage;
+  seo?: boolean;
 };
+
+export type AssistResponse = AiGenerationResponse;
 
 export type AiGenerationResponse = {
   provider: string;
@@ -248,6 +254,8 @@ export type ReportPayload = {
 
 export type LeadStatus = 'NEW' | 'CONTACTED' | 'QUALIFIED' | 'WON' | 'LOST';
 
+export type LeadScoreBand = 'COLD' | 'WARM' | 'HOT';
+
 export type Lead = {
   id: string;
   businessName: string;
@@ -257,6 +265,9 @@ export type Lead = {
   source: string | null;
   message: string | null;
   status: LeadStatus;
+  score: number;
+  scoreBand: LeadScoreBand;
+  scoreReasons: string[];
   clientId: string | null;
   createdAt: string;
   updatedAt: string;
@@ -327,4 +338,70 @@ export type DriveFolderListing = {
     webViewLink: string | null;
   };
   items: DriveItem[];
+};
+
+export type OnboardingTaskStatus = 'PENDING' | 'IN_PROGRESS' | 'DONE';
+
+export type OnboardingTask = {
+  id: string;
+  clientId: string;
+  title: string;
+  description: string | null;
+  status: OnboardingTaskStatus;
+  sortOrder: number;
+  completedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ContentPillar = {
+  id: string;
+  clientId: string;
+  name: string;
+  description: string | null;
+  cadencePerMonth: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ContentPillarPayload = {
+  clientId: string;
+  name: string;
+  description?: string;
+  cadencePerMonth?: number;
+};
+
+export type ContentTemplate = {
+  id: string;
+  clientId: string | null;
+  name: string;
+  contentType: string;
+  platform: string | null;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ContentTemplatePayload = {
+  clientId?: string;
+  name: string;
+  contentType: string;
+  platform?: string;
+  body: string;
+};
+
+export type BestTimeSlot = {
+  weekday: number;
+  weekdayLabel: string;
+  hour: number;
+  avgEngagement: number;
+  sampleSize: number;
+};
+
+export type BestTimeResult = {
+  sampleSize: number;
+  topSlots: BestTimeSlot[];
+  bestHours: Array<{ hour: number; avgEngagement: number; sampleSize: number }>;
+  bestWeekdays: Array<{ weekday: number; weekdayLabel: string; avgEngagement: number; sampleSize: number }>;
+  note: string;
 };
