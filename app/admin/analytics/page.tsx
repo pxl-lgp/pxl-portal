@@ -1,11 +1,18 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, BarChart3, LineChart, RefreshCw, Save, Sparkles } from 'lucide-react';
+import { AlertCircle, BarChart3, LineChart, Pencil, RefreshCw, Save, Sparkles, X } from 'lucide-react';
 import { FormEvent, useMemo, useState } from 'react';
-import { analyzePerformance, createAnalyticsRecord, getAnalyticsRecords, getClients, getContentItems } from '@/lib/api';
+import {
+  analyzePerformance,
+  createAnalyticsRecord,
+  getAnalyticsRecords,
+  getClients,
+  getContentItems,
+  updateAnalyticsRecord,
+} from '@/lib/api';
 import { getApiErrorMessage } from '@/lib/errors';
-import { AnalyticsPayload } from '@/lib/types';
+import { AnalyticsPayload, AnalyticsRecord } from '@/lib/types';
 import { BestTimePanel } from '@/components/portal/best-time-panel';
 
 type AnalyticsFormValues = {
@@ -60,6 +67,7 @@ export default function AnalyticsPage() {
     ...emptyValues,
     contentItemId: reportableContent[0]?.id ?? '',
   });
+  const [editingId, setEditingId] = useState<string | null>(null);
   const createMutation = useMutation({
     mutationFn: (payload: AnalyticsPayload) => createAnalyticsRecord(payload),
     onSuccess: async () => {
@@ -70,6 +78,16 @@ export default function AnalyticsPage() {
       await queryClient.invalidateQueries({ queryKey: ['analytics'] });
     },
   });
+  const updateMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: Partial<AnalyticsPayload> }) =>
+      updateAnalyticsRecord(id, payload),
+    onSuccess: async () => {
+      setEditingId(null);
+      setValues((current) => ({ ...emptyValues, contentItemId: current.contentItemId }));
+      await queryClient.invalidateQueries({ queryKey: ['analytics'] });
+    },
+  });
+  const saveMutation = editingId ? updateMutation : createMutation;
   const totals = useMemo(
     () =>
       analyticsRecords.reduce(
@@ -107,6 +125,31 @@ export default function AnalyticsPage() {
     setValues((current) => ({ ...current, [key]: value }));
   }
 
+  function startEdit(record: AnalyticsRecord) {
+    setEditingId(record.id);
+    setValues({
+      contentItemId: record.contentItemId,
+      reach: String(record.reach),
+      impressions: String(record.impressions),
+      engagement: String(record.engagement),
+      clicks: String(record.clicks),
+      likes: String(record.likes),
+      comments: String(record.comments),
+      shares: String(record.shares),
+      saves: String(record.saves),
+      followersGained: String(record.followersGained),
+      capturedAt: toInputDateTime(record.capturedAt),
+    });
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setValues((current) => ({ ...emptyValues, contentItemId: current.contentItemId }));
+  }
+
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -114,7 +157,7 @@ export default function AnalyticsPage() {
       return;
     }
 
-    createMutation.mutate({
+    const payload: AnalyticsPayload = {
       contentItemId: values.contentItemId,
       reach: toNumber(values.reach),
       impressions: toNumber(values.impressions),
@@ -126,7 +169,13 @@ export default function AnalyticsPage() {
       saves: toNumber(values.saves),
       followersGained: toNumber(values.followersGained),
       capturedAt: values.capturedAt ? new Date(values.capturedAt).toISOString() : undefined,
-    });
+    };
+
+    if (editingId) {
+      updateMutation.mutate({ id: editingId, payload });
+    } else {
+      createMutation.mutate(payload);
+    }
   }
 
   return (
@@ -209,6 +258,7 @@ export default function AnalyticsPage() {
                     <th className="px-4 py-3">Reach</th>
                     <th className="px-4 py-3">Engagement</th>
                     <th className="px-4 py-3">Captured</th>
+                    <th className="px-4 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -232,6 +282,12 @@ export default function AnalyticsPage() {
                         <td className="px-4 py-3 text-muted-foreground">
                           {new Date(record.capturedAt).toLocaleString()}
                         </td>
+                        <td className="px-4 py-3 text-right">
+                          <button className="button button-secondary" onClick={() => startEdit(record)} type="button">
+                            <Pencil className="h-4 w-4" />
+                            Edit
+                          </button>
+                        </td>
                       </tr>
                     );
                   })}
@@ -242,14 +298,22 @@ export default function AnalyticsPage() {
         </div>
 
         <aside className="grid content-start gap-4">
-          <div className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5 text-[var(--brand)]" />
-            <h2 className="font-black">Add metrics</h2>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-[var(--brand)]" />
+              <h2 className="font-black">{editingId ? 'Edit metrics' : 'Add metrics'}</h2>
+            </div>
+            {editingId ? (
+              <button className="button button-secondary" onClick={cancelEdit} type="button">
+                <X className="h-4 w-4" />
+                Cancel
+              </button>
+            ) : null}
           </div>
-          {createMutation.isError ? (
-            <ErrorPanel message={getApiErrorMessage(createMutation.error, 'Analytics save failed.')} />
+          {saveMutation.isError ? (
+            <ErrorPanel message={getApiErrorMessage(saveMutation.error, 'Analytics save failed.')} />
           ) : null}
-          {createMutation.isSuccess ? (
+          {saveMutation.isSuccess ? (
             <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-800">
               Metrics saved.
             </div>
@@ -313,11 +377,11 @@ export default function AnalyticsPage() {
             </div>
             <button
               className="button button-primary"
-              disabled={createMutation.isPending || !values.contentItemId}
+              disabled={saveMutation.isPending || !values.contentItemId}
               type="submit"
             >
               <Save className="h-4 w-4" />
-              {createMutation.isPending ? 'Saving' : 'Save metrics'}
+              {saveMutation.isPending ? 'Saving' : editingId ? 'Update metrics' : 'Save metrics'}
             </button>
           </form>
         </aside>

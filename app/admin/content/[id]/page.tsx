@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, ArrowLeft } from 'lucide-react';
+import { AlertCircle, ArrowLeft, LineChart } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { AiAssistantPanel } from '@/components/portal/ai-assistant-panel';
@@ -10,7 +10,7 @@ import { ContentStatusBadge } from '@/components/portal/content-status-badge';
 import { ContentTemplatePicker } from '@/components/portal/content-template-picker';
 import { PlatformPreviewPanel } from '@/components/portal/platform-preview-panel';
 import { PublishingPanel } from '@/components/portal/publishing-panel';
-import { getClients, getContentItem, updateContentItem } from '@/lib/api';
+import { getClients, getContentAnalytics, getContentItem, updateContentItem } from '@/lib/api';
 import { ContentPayload } from '@/lib/types';
 import { getApiErrorMessage } from '@/lib/errors';
 
@@ -101,6 +101,8 @@ export default function ContentDetailPage() {
 
       <PublishingPanel contentItem={contentItem} />
 
+      <ContentAnalyticsPanel contentItemId={params.id} />
+
       <AiAssistantPanel
         client={client}
         contentItem={contentItem}
@@ -122,5 +124,59 @@ export default function ContentDetailPage() {
         }
       />
     </>
+  );
+}
+
+function ContentAnalyticsPanel({ contentItemId }: { contentItemId: string }) {
+  const analyticsQuery = useQuery({
+    queryKey: ['content-analytics', contentItemId],
+    queryFn: () => getContentAnalytics(contentItemId),
+  });
+  const records = analyticsQuery.data ?? [];
+
+  return (
+    <section className="panel overflow-hidden">
+      <div className="flex items-center gap-2 border-b border-[var(--border)] p-5">
+        <LineChart className="h-5 w-5 text-[var(--brand)]" />
+        <h2 className="font-black">Performance records</h2>
+      </div>
+      {analyticsQuery.isLoading ? (
+        <div className="p-5 text-sm text-muted-foreground">Loading performance records.</div>
+      ) : analyticsQuery.isError ? (
+        <div className="flex items-start gap-2 p-5 text-sm text-red-800">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          Unable to load performance records.
+        </div>
+      ) : records.length === 0 ? (
+        <div className="p-5 text-sm text-muted-foreground">
+          No performance records yet. Add metrics from the Analytics page once this content is published.
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-left text-sm">
+            <thead className="bg-[var(--panel-muted)] text-xs uppercase text-muted-foreground">
+              <tr>
+                <th className="px-4 py-3">Captured</th>
+                <th className="px-4 py-3">Reach</th>
+                <th className="px-4 py-3">Impressions</th>
+                <th className="px-4 py-3">Engagement</th>
+                <th className="px-4 py-3">Clicks</th>
+              </tr>
+            </thead>
+            <tbody>
+              {records.map((record) => (
+                <tr className="border-t border-[var(--border)]" key={record.id}>
+                  <td className="px-4 py-3 text-muted-foreground">{new Date(record.capturedAt).toLocaleString()}</td>
+                  <td className="px-4 py-3">{record.reach.toLocaleString()}</td>
+                  <td className="px-4 py-3">{record.impressions.toLocaleString()}</td>
+                  <td className="px-4 py-3">{record.engagement.toLocaleString()}</td>
+                  <td className="px-4 py-3">{record.clicks.toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
   );
 }

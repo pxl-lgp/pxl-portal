@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, CalendarRange, Megaphone, RefreshCw, Save } from 'lucide-react';
+import Link from 'next/link';
 import { FormEvent, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { getApiErrorMessage } from '@/lib/errors';
@@ -120,7 +121,7 @@ export default function CampaignsPage() {
                 <article className="grid gap-3 p-4" key={campaign.id}>
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                     <div>
-                      <h3 className="font-semibold">{campaign.name}</h3>
+                      <Link className="font-semibold hover:underline" href={`/admin/campaigns/${campaign.id}`}>{campaign.name}</Link>
                       <p className="text-sm text-muted-foreground">{clientById.get(campaign.clientId)?.businessName ?? 'Unknown client'}</p>
                     </div>
                     <span className="w-fit rounded-full border px-2.5 py-1 text-xs font-semibold">{campaign.status}</span>

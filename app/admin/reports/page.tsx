@@ -1,11 +1,11 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, RefreshCw, Save, ScrollText } from 'lucide-react';
+import { AlertCircle, Pencil, RefreshCw, Save, ScrollText, X } from 'lucide-react';
 import { FormEvent, useMemo, useState } from 'react';
-import { createReport, getClients, getReports } from '@/lib/api';
+import { createReport, getClients, getReports, updateReport } from '@/lib/api';
 import { getApiErrorMessage } from '@/lib/errors';
-import { ReportPayload } from '@/lib/types';
+import { Report, ReportPayload } from '@/lib/types';
 
 type ReportFormValues = {
   clientId: string;
@@ -37,6 +37,7 @@ export default function ReportsPage() {
     summary: '',
     driveUrl: '',
   });
+  const [editingId, setEditingId] = useState<string | null>(null);
   const createMutation = useMutation({
     mutationFn: (payload: ReportPayload) => createReport(payload),
     onSuccess: async () => {
@@ -49,10 +50,39 @@ export default function ReportsPage() {
       await queryClient.invalidateQueries({ queryKey: ['reports'] });
     },
   });
+  const updateMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: Partial<ReportPayload> }) => updateReport(id, payload),
+    onSuccess: async () => {
+      setEditingId(null);
+      setValues((current) => ({ ...current, title: '', summary: '', driveUrl: '' }));
+      await queryClient.invalidateQueries({ queryKey: ['reports'] });
+    },
+  });
+  const saveMutation = editingId ? updateMutation : createMutation;
   const selectedClientId = values.clientId || clients[0]?.id || '';
 
   function updateValue<K extends keyof ReportFormValues>(key: K, value: ReportFormValues[K]) {
     setValues((current) => ({ ...current, [key]: value }));
+  }
+
+  function startEdit(report: Report) {
+    setEditingId(report.id);
+    setValues({
+      clientId: report.clientId,
+      title: report.title,
+      periodStart: toInputDate(new Date(report.periodStart)),
+      periodEnd: toInputDate(new Date(report.periodEnd)),
+      summary: report.summary ?? '',
+      driveUrl: report.driveUrl ?? '',
+    });
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setValues((current) => ({ ...current, title: '', summary: '', driveUrl: '' }));
   }
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -62,14 +92,20 @@ export default function ReportsPage() {
       return;
     }
 
-    createMutation.mutate({
+    const payload: ReportPayload = {
       clientId: selectedClientId,
       title: values.title.trim(),
       periodStart: new Date(values.periodStart).toISOString(),
       periodEnd: new Date(values.periodEnd).toISOString(),
       summary: values.summary.trim() || undefined,
       driveUrl: values.driveUrl.trim() || undefined,
-    });
+    };
+
+    if (editingId) {
+      updateMutation.mutate({ id: editingId, payload });
+    } else {
+      createMutation.mutate(payload);
+    }
   }
 
   return (
@@ -114,11 +150,17 @@ export default function ReportsPage() {
                     </div>
                   </div>
                   {report.summary ? <p className="text-sm text-foreground/80">{report.summary}</p> : null}
-                  {report.driveUrl ? (
-                    <a className="text-sm font-bold text-[var(--brand-dark)]" href={report.driveUrl}>
-                      Drive report
-                    </a>
-                  ) : null}
+                  <div className="flex flex-wrap items-center gap-3">
+                    {report.driveUrl ? (
+                      <a className="text-sm font-bold text-[var(--brand-dark)]" href={report.driveUrl}>
+                        Drive report
+                      </a>
+                    ) : null}
+                    <button className="button button-secondary" onClick={() => startEdit(report)} type="button">
+                      <Pencil className="h-4 w-4" />
+                      Edit
+                    </button>
+                  </div>
                 </article>
               ))}
             </div>
@@ -126,14 +168,22 @@ export default function ReportsPage() {
         </div>
 
         <aside className="grid content-start gap-4">
-          <div className="flex items-center gap-2">
-            <ScrollText className="h-5 w-5 text-[var(--brand)]" />
-            <h2 className="font-black">Create report</h2>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <ScrollText className="h-5 w-5 text-[var(--brand)]" />
+              <h2 className="font-black">{editingId ? 'Edit report' : 'Create report'}</h2>
+            </div>
+            {editingId ? (
+              <button className="button button-secondary" onClick={cancelEdit} type="button">
+                <X className="h-4 w-4" />
+                Cancel
+              </button>
+            ) : null}
           </div>
-          {createMutation.isError ? (
-            <ErrorPanel message={getApiErrorMessage(createMutation.error, 'Report creation failed.')} />
+          {saveMutation.isError ? (
+            <ErrorPanel message={getApiErrorMessage(saveMutation.error, 'Report save failed.')} />
           ) : null}
-          {createMutation.isSuccess ? (
+          {saveMutation.isSuccess ? (
             <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-800">
               Report saved.
             </div>
@@ -182,9 +232,9 @@ export default function ReportsPage() {
                 value={values.summary}
               />
             </div>
-            <button className="button button-primary" disabled={createMutation.isPending || !selectedClientId} type="submit">
+            <button className="button button-primary" disabled={saveMutation.isPending || !selectedClientId} type="submit">
               <Save className="h-4 w-4" />
-              {createMutation.isPending ? 'Saving' : 'Save report'}
+              {saveMutation.isPending ? 'Saving' : editingId ? 'Update report' : 'Save report'}
             </button>
           </form>
         </aside>

@@ -1,16 +1,17 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, Copy, LayoutTemplate, RefreshCw, Save, Trash2 } from 'lucide-react';
+import { AlertCircle, Copy, LayoutTemplate, Pencil, RefreshCw, Save, Trash2, X } from 'lucide-react';
 import { FormEvent, useMemo, useState } from 'react';
 import {
   createContentTemplate,
   deleteContentTemplate,
   getClients,
   getContentTemplates,
+  updateContentTemplate,
 } from '@/lib/api';
 import { getApiErrorMessage } from '@/lib/errors';
-import { ContentTemplatePayload } from '@/lib/types';
+import { ContentTemplate, ContentTemplatePayload } from '@/lib/types';
 
 type TemplateFormValues = {
   clientId: string;
@@ -43,6 +44,7 @@ export default function ContentTemplatesPage() {
   const clients = useMemo(() => clientsQuery.data ?? [], [clientsQuery.data]);
   const clientById = new Map(clients.map((client) => [client.id, client]));
   const [values, setValues] = useState<TemplateFormValues>(emptyValues);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState('');
 
   function invalidate() {
@@ -56,13 +58,42 @@ export default function ContentTemplatesPage() {
       await invalidate();
     },
   });
+  const updateMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: Partial<ContentTemplatePayload> }) =>
+      updateContentTemplate(id, payload),
+    onSuccess: async () => {
+      setEditingId(null);
+      setValues(emptyValues);
+      await invalidate();
+    },
+  });
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteContentTemplate(id),
     onSuccess: invalidate,
   });
+  const saveMutation = editingId ? updateMutation : createMutation;
 
   function updateValue<K extends keyof TemplateFormValues>(key: K, value: TemplateFormValues[K]) {
     setValues((current) => ({ ...current, [key]: value }));
+  }
+
+  function startEdit(template: ContentTemplate) {
+    setEditingId(template.id);
+    setValues({
+      clientId: template.clientId ?? '',
+      name: template.name,
+      contentType: template.contentType,
+      platform: template.platform ?? '',
+      body: template.body,
+    });
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setValues(emptyValues);
   }
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -72,13 +103,19 @@ export default function ContentTemplatesPage() {
       return;
     }
 
-    createMutation.mutate({
+    const payload: ContentTemplatePayload = {
       clientId: values.clientId || undefined,
       name: values.name.trim(),
       contentType: values.contentType.trim(),
       platform: values.platform.trim() || undefined,
       body: values.body,
-    });
+    };
+
+    if (editingId) {
+      updateMutation.mutate({ id: editingId, payload });
+    } else {
+      createMutation.mutate(payload);
+    }
   }
 
   async function copyBody(id: string, body: string) {
@@ -157,6 +194,10 @@ export default function ContentTemplatesPage() {
                       <Copy className="h-4 w-4" />
                       {copiedId === template.id ? 'Copied' : 'Copy body'}
                     </button>
+                    <button className="button button-secondary" onClick={() => startEdit(template)} type="button">
+                      <Pencil className="h-4 w-4" />
+                      Edit
+                    </button>
                     <button
                       className="button button-secondary"
                       disabled={deleteMutation.isPending}
@@ -174,14 +215,22 @@ export default function ContentTemplatesPage() {
         </div>
 
         <aside className="grid content-start gap-4">
-          <div className="flex items-center gap-2">
-            <LayoutTemplate className="h-5 w-5 text-[var(--brand)]" />
-            <h2 className="font-black">New template</h2>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <LayoutTemplate className="h-5 w-5 text-[var(--brand)]" />
+              <h2 className="font-black">{editingId ? 'Edit template' : 'New template'}</h2>
+            </div>
+            {editingId ? (
+              <button className="button button-secondary" onClick={cancelEdit} type="button">
+                <X className="h-4 w-4" />
+                Cancel
+              </button>
+            ) : null}
           </div>
-          {createMutation.isError ? (
-            <ErrorPanel message={getApiErrorMessage(createMutation.error, 'Template creation failed.')} />
+          {saveMutation.isError ? (
+            <ErrorPanel message={getApiErrorMessage(saveMutation.error, 'Template save failed.')} />
           ) : null}
-          {createMutation.isSuccess ? (
+          {saveMutation.isSuccess ? (
             <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-800">
               Template saved.
             </div>
@@ -248,11 +297,11 @@ export default function ContentTemplatesPage() {
             </div>
             <button
               className="button button-primary"
-              disabled={createMutation.isPending || !values.name.trim() || !values.body.trim()}
+              disabled={saveMutation.isPending || !values.name.trim() || !values.body.trim()}
               type="submit"
             >
               <Save className="h-4 w-4" />
-              {createMutation.isPending ? 'Saving' : 'Save template'}
+              {saveMutation.isPending ? 'Saving' : editingId ? 'Update template' : 'Save template'}
             </button>
           </form>
         </aside>

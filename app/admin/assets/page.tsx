@@ -1,10 +1,10 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, Archive, ExternalLink, FileImage, Link2, RefreshCw, Save, Sparkles } from 'lucide-react';
+import { AlertCircle, Archive, ExternalLink, FileImage, Link2, Pencil, RefreshCw, Save, Sparkles, X } from 'lucide-react';
 import { FormEvent, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { autoTagAsset, createAsset, getAssets, getClients, getContentItems } from '@/lib/api';
+import { autoTagAsset, createAsset, getAssets, getClients, getContentItems, updateAsset } from '@/lib/api';
 import { getApiErrorMessage } from '@/lib/errors';
 import { Asset, AssetPayload } from '@/lib/types';
 
@@ -54,6 +54,7 @@ export default function AssetsPage() {
     ...emptyValues,
     clientId: clients[0]?.id ?? '',
   });
+  const [editingId, setEditingId] = useState<string | null>(null);
   const filteredContent = contentItems.filter((item) => item.clientId === (values.clientId || clients[0]?.id));
   const createMutation = useMutation({
     mutationFn: (payload: AssetPayload) => createAsset(payload),
@@ -65,6 +66,15 @@ export default function AssetsPage() {
       await queryClient.invalidateQueries({ queryKey: ['assets'] });
     },
   });
+  const updateMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: Partial<AssetPayload> }) => updateAsset(id, payload),
+    onSuccess: async () => {
+      setEditingId(null);
+      setValues((current) => ({ ...emptyValues, clientId: current.clientId }));
+      await queryClient.invalidateQueries({ queryKey: ['assets'] });
+    },
+  });
+  const saveMutation = editingId ? updateMutation : createMutation;
   const autoTagMutation = useMutation({
     mutationFn: (id: string) => autoTagAsset(id),
     onSuccess: async () => {
@@ -83,6 +93,27 @@ export default function AssetsPage() {
     }));
   }
 
+  function startEdit(asset: Asset) {
+    setEditingId(asset.id);
+    setValues({
+      clientId: asset.clientId,
+      contentItemId: asset.contentItemId ?? '',
+      name: asset.name,
+      assetType: asset.assetType,
+      driveUrl: asset.driveUrl,
+      version: String(asset.version),
+      tags: asset.tags.join(', '),
+    });
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setValues((current) => ({ ...emptyValues, clientId: current.clientId }));
+  }
+
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -90,7 +121,7 @@ export default function AssetsPage() {
       return;
     }
 
-    createMutation.mutate({
+    const payload: AssetPayload = {
       clientId: selectedClientId,
       contentItemId: values.contentItemId || undefined,
       name: values.name.trim(),
@@ -101,7 +132,13 @@ export default function AssetsPage() {
         .split(',')
         .map((tag) => tag.trim())
         .filter(Boolean),
-    });
+    };
+
+    if (editingId) {
+      updateMutation.mutate({ id: editingId, payload });
+    } else {
+      createMutation.mutate(payload);
+    }
   }
 
   return (
@@ -188,6 +225,7 @@ export default function AssetsPage() {
                     isAutoTagging={autoTagMutation.isPending && autoTagMutation.variables === asset.id}
                     key={asset.id}
                     onAutoTag={() => autoTagMutation.mutate(asset.id)}
+                    onEdit={() => startEdit(asset)}
                   />
                 );
               })}
@@ -196,14 +234,22 @@ export default function AssetsPage() {
         </div>
 
         <aside className="grid content-start gap-4">
-          <div className="flex items-center gap-2">
-            <Archive className="h-5 w-5 text-[var(--brand)]" />
-            <h2 className="font-black">Add asset</h2>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Archive className="h-5 w-5 text-[var(--brand)]" />
+              <h2 className="font-black">{editingId ? 'Edit asset' : 'Add asset'}</h2>
+            </div>
+            {editingId ? (
+              <button className="button button-secondary" onClick={cancelEdit} type="button">
+                <X className="h-4 w-4" />
+                Cancel
+              </button>
+            ) : null}
           </div>
-          {createMutation.isError ? (
-            <ErrorPanel message={getApiErrorMessage(createMutation.error, 'Asset creation failed.')} />
+          {saveMutation.isError ? (
+            <ErrorPanel message={getApiErrorMessage(saveMutation.error, 'Asset save failed.')} />
           ) : null}
-          {createMutation.isSuccess ? (
+          {saveMutation.isSuccess ? (
             <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-800">
               Asset saved.
             </div>
@@ -266,9 +312,9 @@ export default function AssetsPage() {
               value={values.driveUrl}
             />
             <TextField label="Tags" onChange={(value) => updateValue('tags', value)} value={values.tags} />
-            <button className="button button-primary" disabled={createMutation.isPending || !selectedClientId} type="submit">
+            <button className="button button-primary" disabled={saveMutation.isPending || !selectedClientId} type="submit">
               <Save className="h-4 w-4" />
-              {createMutation.isPending ? 'Saving' : 'Save asset'}
+              {saveMutation.isPending ? 'Saving' : editingId ? 'Update asset' : 'Save asset'}
             </button>
           </form>
         </aside>
@@ -283,12 +329,14 @@ function AssetCard({
   contentTitle,
   isAutoTagging,
   onAutoTag,
+  onEdit,
 }: {
   asset: Asset;
   clientName: string;
   contentTitle?: string;
   isAutoTagging: boolean;
   onAutoTag: () => void;
+  onEdit: () => void;
 }) {
   const isPreviewable = isImageUrl(asset.driveUrl);
 
@@ -345,6 +393,10 @@ function AssetCard({
             <ExternalLink className="h-4 w-4" />
             Open asset
           </a>
+          <button className="button button-secondary" onClick={onEdit} type="button">
+            <Pencil className="h-4 w-4" />
+            Edit
+          </button>
           <button className="button button-secondary" disabled={isAutoTagging} onClick={onAutoTag} type="button">
             <Sparkles className="h-4 w-4" />
             {isAutoTagging ? 'Tagging' : 'Auto-tag'}
