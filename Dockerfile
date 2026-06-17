@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # ---- Builder: install deps and produce the standalone Next build ----
-FROM node:22.13.0-bookworm-slim AS builder
+FROM node:22.22.3-bookworm-slim AS builder
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 # Update corepack first: the version bundled with Node 22.13 has stale signing
@@ -13,7 +13,7 @@ COPY . .
 RUN pnpm build
 
 # ---- Runtime: run the standalone server (no pnpm, minimal node_modules) ----
-FROM node:22.13.0-bookworm-slim AS runtime
+FROM node:22.22.3-bookworm-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
