@@ -49,7 +49,7 @@ export function ChatWidget() {
     <>
       <button
         aria-label={open ? "Close chat" : "Chat with PXL"}
-        className="fixed bottom-5 left-5 z-50 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition-transform hover:scale-110"
+        className="fixed bottom-5 right-5 z-50 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition-transform hover:scale-110"
         onClick={() => setOpen((current) => !current)}
         type="button"
       >
@@ -58,7 +58,7 @@ export function ChatWidget() {
 
       <div
         className={cn(
-          "fixed bottom-24 left-5 z-50 flex w-[min(22rem,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl transition-all duration-300",
+          "fixed bottom-24 right-5 z-50 flex w-[min(22rem,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl transition-all duration-300",
           open ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-6 opacity-0",
         )}
         role="dialog"

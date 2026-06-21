@@ -25,10 +25,10 @@ export const hero = {
   primaryCta: "Get Your Free Growth Plan",
   secondaryCta: "Explore Our Services",
   stats: [
-    { value: 250, suffix: "+", label: "Brands grown" },
-    { value: 1.2, suffix: "M+", decimals: 1, label: "Leads generated" },
-    { value: 4.7, suffix: "x", decimals: 1, label: "Average return on ad spend" },
-    { value: 98, suffix: "%", label: "Client retention" },
+    { value: 5, suffix: "", decimals: 0, label: "Years of experience" },
+    { value: 56, suffix: "", decimals: 0, label: "Completed projects" },
+    { value: 10, suffix: "+", decimals: 0, label: "Clients worldwide" },
+    { value: 98, suffix: "%", decimals: 0, label: "Satisfaction rate" },
   ],
 };
 
@@ -542,12 +542,12 @@ export const results = {
     },
   ],
   exampleStats: [
-    { value: 312, suffix: "%", label: "Average increase in qualified leads", sublabel: "within the first 6 months" },
-    { value: 4.7, suffix: "x", decimals: 1, label: "Average return on ad spend", sublabel: "across managed ad accounts" },
-    { value: 58, prefix: "-", suffix: "%", label: "Average reduction in cost per lead", sublabel: "after optimization phase" },
-    { value: 3.2, suffix: "x", decimals: 1, label: "Average audience growth", sublabel: "in the first year of management" },
-    { value: 89, suffix: "%", label: "Average engagement increase", sublabel: "across managed social accounts" },
-    { value: 2.4, suffix: "x", decimals: 1, label: "Average conversion rate uplift", sublabel: "after website optimization" },
+    { value: 5, prefix: "", suffix: "", decimals: 0, label: "Years of experience", sublabel: "as listed in the portfolio" },
+    { value: 56, prefix: "", suffix: "", decimals: 0, label: "Completed projects", sublabel: "as listed in the portfolio" },
+    { value: 10, prefix: "", suffix: "+", decimals: 0, label: "Clients worldwide", sublabel: "as listed in the portfolio" },
+    { value: 98, prefix: "", suffix: "%", decimals: 0, label: "Satisfaction rate", sublabel: "as listed in the portfolio" },
+    { value: 200, prefix: "", suffix: "%", decimals: 0, label: "Growth", sublabel: "as listed in the portfolio" },
+    { value: 200, prefix: "", suffix: "%", decimals: 0, label: "Revenue growth", sublabel: "as listed in the portfolio" },
   ],
   disclaimer:
     "Every business starts from a different baseline, and results vary by industry, budget, and offer. What never varies: we set targets up front, measure honestly, and optimize until the numbers move.",
@@ -647,7 +647,7 @@ export const testimonials = {
 export const faq = {
   heading: "Questions? We've Got Answers",
   intro:
-    "Everything you're wondering about working with us — answered honestly. Don't see your question? Just ask: hello@pxl.digital",
+    "Everything you're wondering about working with us — answered honestly. Don't see your question? Just ask: jerwhynes@gmail.com",
   items: [
     {
       question: "What services do you offer?",
@@ -687,7 +687,7 @@ export const faq = {
     {
       question: "How do we get started?",
       answer:
-        "Simple: book a free consultation through the contact form below (or email hello@pxl.digital). In that first conversation we'll learn about your business and goals, give you our honest read on your biggest opportunities, and outline what a partnership could look like. If we're a fit, we'll send a customized proposal with clear scope, pricing, and targets. No pressure, no obligation — just a useful conversation about growing your business.",
+        "Simple: book a free consultation through the contact form below (or email jerwhynes@gmail.com). In that first conversation we'll learn about your business and goals, give you our honest read on your biggest opportunities, and outline what a partnership could look like. If we're a fit, we'll send a customized proposal with clear scope, pricing, and targets. No pressure, no obligation — just a useful conversation about growing your business.",
     },
   ],
 };
@@ -720,9 +720,9 @@ export const contact = {
     "No question is too small and no project is too early. If it touches your growth, it's worth a conversation.",
   closing:
     "We're looking forward to learning about your business — and showing you what it could become.",
-  email: "hello@pxl.digital",
-  phone: "+63 (2) 8888 0000",
-  address: "Manila, Philippines — serving clients worldwide",
+  email: "jerwhynes@gmail.com",
+  phone: "+63 963 003 5335",
+  address: "Legazpi, Albay — serving clients worldwide",
   formCta: "Send My Message",
   successTitle: "Message sent successfully",
   successBody:
@@ -838,7 +838,7 @@ export const funnel = {
     bookCta: "Book a Free Consultation",
     homeCta: "Back to the Website",
   },
-  trustStrip: ["250+ brands grown", "4.7x average ROAS", "98% client retention"],
+  trustStrip: ["5 years of experience", "56 completed projects", "10+ clients worldwide"],
 };
 
 // LOGIN PAGE (/login) ------------------------------------------------------------------------

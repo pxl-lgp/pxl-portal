@@ -22,12 +22,11 @@ function Row({ reverse = false }: { reverse?: boolean }) {
   );
 }
 
-/** Two counter-scrolling strips of service keywords; both pause on hover. */
+/** Scrolling strip of service keywords; pauses on hover. */
 export function Marquee() {
   return (
-    <div className="group relative space-y-2 overflow-hidden border-y bg-primary py-3 text-primary-foreground">
+    <div className="group relative overflow-hidden border-y bg-primary py-3 text-primary-foreground">
       <Row />
-      <Row reverse />
     </div>
   );
 }

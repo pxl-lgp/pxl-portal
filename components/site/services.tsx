@@ -46,14 +46,14 @@ export function Services() {
 
         <Reveal>
           <Tabs defaultValue={services[0].id}>
-            <TabsList className="mx-auto mb-8 flex h-auto w-full max-w-4xl flex-wrap justify-center gap-1 rounded-2xl p-1.5">
+            <TabsList className="mx-auto mb-8 grid !h-auto min-h-14 w-full max-w-5xl grid-cols-2 gap-1 rounded-2xl p-2 md:grid-cols-3 lg:grid-cols-5">
               {services.map((service) => {
                 const Icon = icons[service.icon];
                 return (
                   <TabsTrigger
                     key={service.id}
                     value={service.id}
-                    className="gap-2 rounded-xl px-4 py-2.5 data-[state=active]:shadow-md"
+                    className="min-h-10 w-full min-w-0 gap-2 whitespace-normal rounded-xl px-3 py-2.5 text-center leading-tight data-[state=active]:shadow-md"
                   >
                     <Icon className="size-4" />
                     <span className="hidden sm:inline">{service.name}</span>
