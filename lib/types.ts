@@ -21,6 +21,13 @@ export type RegisterPayload = {
   role: UserRole;
 };
 
+export type UpdateUserPayload = {
+  email?: string;
+  name?: string;
+  password?: string;
+  role?: UserRole;
+};
+
 export type ClientStatus = 'LEAD' | 'ONBOARDING' | 'ACTIVE' | 'PAUSED' | 'ARCHIVED';
 
 export type Client = {

@@ -1,11 +1,11 @@
 'use client';
 
-import { useMutation } from '@tanstack/react-query';
-import { AlertCircle, CheckCircle2, UserCog } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { AlertCircle, CheckCircle2, Loader2, RefreshCw, Save, Trash2, UserCog } from 'lucide-react';
 import { FormEvent, useState } from 'react';
-import { registerUser } from '@/lib/api';
+import { deleteUser, getCurrentUser, getUsers, registerUser, updateUser } from '@/lib/api';
 import { getApiErrorMessage } from '@/lib/errors';
-import { RegisterPayload, UserRole } from '@/lib/types';
+import { RegisterPayload, UpdateUserPayload, User, UserRole } from '@/lib/types';
 
 const initialValues: RegisterPayload = {
   email: '',
@@ -14,17 +14,48 @@ const initialValues: RegisterPayload = {
   role: 'CLIENT',
 };
 
+type EditableUser = {
+  email: string;
+  name: string;
+  password: string;
+  role: UserRole;
+};
+
 export default function AdminUsersPage() {
+  const queryClient = useQueryClient();
   const [values, setValues] = useState<RegisterPayload>(initialValues);
-  const mutation = useMutation({
+  const [editValues, setEditValues] = useState<Record<string, EditableUser>>({});
+  const usersQuery = useQuery({ queryKey: ['users'], queryFn: getUsers });
+  const currentUserQuery = useQuery({ queryKey: ['auth', 'me'], queryFn: getCurrentUser });
+  const users = usersQuery.data ?? [];
+  const currentUser = currentUserQuery.data;
+
+  const createMutation = useMutation({
     mutationFn: () =>
       registerUser({
         ...values,
         email: values.email.trim().toLowerCase(),
         name: values.name.trim(),
       }),
-    onSuccess: () => {
+    onSuccess: async () => {
       setValues(initialValues);
+      await queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: UpdateUserPayload }) => updateUser(id, payload),
+    onSuccess: async (user) => {
+      setEditValues((current) => ({ ...current, [user.id]: toEditableUser(user) }));
+      await queryClient.invalidateQueries({ queryKey: ['users'] });
+      await queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteUser,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['users'] });
     },
   });
 
@@ -32,40 +63,208 @@ export default function AdminUsersPage() {
     setValues((current) => ({ ...current, [key]: value }));
   }
 
+  function updateEditValue<Key extends keyof EditableUser>(id: string, key: Key, value: EditableUser[Key]) {
+    setEditValues((current) => ({
+      ...current,
+      [id]: {
+        ...(current[id] ?? toEditableUser(users.find((user) => user.id === id)!)),
+        [key]: value,
+      },
+    }));
+  }
+
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    mutation.mutate();
+    createMutation.mutate();
   }
+
+  function saveUser(user: User) {
+    const editableUser = editValues[user.id];
+
+    if (!editableUser) {
+      return;
+    }
+
+    const payload: UpdateUserPayload = {
+      email: editableUser.email.trim().toLowerCase(),
+      name: editableUser.name.trim(),
+      role: editableUser.role,
+    };
+
+    if (editableUser.password.trim()) {
+      payload.password = editableUser.password;
+    }
+
+    updateMutation.mutate({ id: user.id, payload });
+  }
+
+  function removeUser(user: User) {
+    if (window.confirm(`Delete ${user.name}'s account? This cannot be undone.`)) {
+      deleteMutation.mutate(user.id);
+    }
+  }
+
+  const managementError = usersQuery.error ?? updateMutation.error ?? deleteMutation.error;
 
   return (
     <>
       <section>
         <h1 className="text-2xl font-black">Users</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Create admin, team, and client login accounts</p>
+        <p className="mt-1 text-sm text-muted-foreground">Create, edit, reset, and remove login accounts</p>
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-[1fr_360px]">
-        <form className="panel grid gap-5 p-5" onSubmit={submit}>
+      <section className="grid gap-6 xl:grid-cols-[1fr_420px]">
+        <div className="panel grid gap-5 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <UserCog className="h-5 w-5 text-[var(--brand)]" />
+              <h2 className="font-black">Manage accounts</h2>
+            </div>
+            <button className="button button-secondary" onClick={() => usersQuery.refetch()} type="button">
+              <RefreshCw className="h-4 w-4" />
+              Refresh
+            </button>
+          </div>
+
+          {managementError ? (
+            <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              {getApiErrorMessage(managementError, 'Unable to manage user accounts.')}
+            </div>
+          ) : null}
+
+          {updateMutation.isSuccess ? (
+            <div className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+              User account updated.
+            </div>
+          ) : null}
+
+          {deleteMutation.isSuccess ? (
+            <div className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+              User account deleted.
+            </div>
+          ) : null}
+
+          {usersQuery.isLoading ? (
+            <div className="grid place-items-center rounded-lg border border-dashed p-8 text-muted-foreground">
+              <Loader2 className="h-5 w-5 animate-spin" />
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {users.map((user) => {
+                const editableUser = editValues[user.id] ?? toEditableUser(user);
+                const isCurrentUser = user.id === currentUser?.id;
+                const isSaving = updateMutation.isPending && updateMutation.variables?.id === user.id;
+                const isDeleting = deleteMutation.isPending && deleteMutation.variables === user.id;
+
+                return (
+                  <article className="rounded-xl border bg-background p-4" key={user.id}>
+                    <div className="grid gap-3 lg:grid-cols-[1fr_1fr_150px_1fr_auto] lg:items-end">
+                      <div className="field">
+                        <label htmlFor={`name-${user.id}`}>Name</label>
+                        <input
+                          className="input"
+                          id={`name-${user.id}`}
+                          minLength={2}
+                          onChange={(event) => updateEditValue(user.id, 'name', event.target.value)}
+                          value={editableUser.name}
+                        />
+                      </div>
+
+                      <div className="field">
+                        <label htmlFor={`email-${user.id}`}>Email</label>
+                        <input
+                          className="input"
+                          id={`email-${user.id}`}
+                          onChange={(event) => updateEditValue(user.id, 'email', event.target.value)}
+                          type="email"
+                          value={editableUser.email}
+                        />
+                      </div>
+
+                      <div className="field">
+                        <label htmlFor={`role-${user.id}`}>Role</label>
+                        <select
+                          className="select"
+                          disabled={isCurrentUser}
+                          id={`role-${user.id}`}
+                          onChange={(event) => updateEditValue(user.id, 'role', event.target.value as UserRole)}
+                          value={editableUser.role}
+                        >
+                          <option value="CLIENT">Client</option>
+                          <option value="TEAM">Team</option>
+                          <option value="ADMIN">Admin</option>
+                        </select>
+                      </div>
+
+                      <div className="field">
+                        <label htmlFor={`password-${user.id}`}>New password</label>
+                        <input
+                          autoComplete="new-password"
+                          className="input"
+                          id={`password-${user.id}`}
+                          minLength={8}
+                          onChange={(event) => updateEditValue(user.id, 'password', event.target.value)}
+                          placeholder="Leave unchanged"
+                          type="password"
+                          value={editableUser.password}
+                        />
+                      </div>
+
+                      <div className="flex gap-2 lg:justify-end">
+                        <button
+                          className="button button-primary"
+                          disabled={isSaving || isDeleting}
+                          onClick={() => saveUser(user)}
+                          type="button"
+                        >
+                          <Save className="h-4 w-4" />
+                          {isSaving ? 'Saving' : 'Save'}
+                        </button>
+                        <button
+                          className="button button-secondary text-red-700"
+                          disabled={isCurrentUser || isSaving || isDeleting}
+                          onClick={() => removeUser(user)}
+                          type="button"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          {isDeleting ? 'Deleting' : 'Delete'}
+                        </button>
+                      </div>
+                    </div>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Created {formatDate(user.createdAt)} {isCurrentUser ? '· Current account' : ''}
+                    </p>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <form className="panel grid content-start gap-5 p-5" onSubmit={submit}>
           <div className="flex items-center gap-2">
             <UserCog className="h-5 w-5 text-[var(--brand)]" />
             <h2 className="font-black">Create user account</h2>
           </div>
 
-          {mutation.isSuccess ? (
+          {createMutation.isSuccess ? (
             <div className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
               <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
               User account created.
             </div>
           ) : null}
 
-          {mutation.isError ? (
+          {createMutation.isError ? (
             <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              {getApiErrorMessage(mutation.error, 'Unable to create user account.')}
+              {getApiErrorMessage(createMutation.error, 'Unable to create user account.')}
             </div>
           ) : null}
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4">
             <div className="field">
               <label htmlFor="name">Name</label>
               <input
@@ -126,29 +325,25 @@ export default function AdminUsersPage() {
             </div>
           ) : null}
 
-          <div className="flex justify-end">
-            <button className="button button-primary" disabled={mutation.isPending} type="submit">
-              <UserCog className="h-4 w-4" />
-              {mutation.isPending ? 'Creating account' : 'Create account'}
-            </button>
-          </div>
+          <button className="button button-primary justify-center" disabled={createMutation.isPending} type="submit">
+            <UserCog className="h-4 w-4" />
+            {createMutation.isPending ? 'Creating account' : 'Create account'}
+          </button>
         </form>
-
-        <aside className="panel grid content-start gap-4 p-5">
-          <h2 className="font-black">Login rules</h2>
-          <div className="grid gap-3 text-sm leading-6 text-foreground/80">
-            <p>
-              <strong>Admin</strong> users manage all operations and can create more accounts.
-            </p>
-            <p>
-              <strong>Team</strong> users can use the internal operations screens but cannot create users.
-            </p>
-            <p>
-              <strong>Client</strong> users are redirected to their client dashboard after login.
-            </p>
-          </div>
-        </aside>
       </section>
     </>
   );
+}
+
+function toEditableUser(user: User): EditableUser {
+  return {
+    email: user.email,
+    name: user.name,
+    password: '',
+    role: user.role,
+  };
+}
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(value));
 }

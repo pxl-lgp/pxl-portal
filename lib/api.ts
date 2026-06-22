@@ -41,6 +41,7 @@ import {
   SocialConnection,
   MetaOauthUrlResponse,
   User,
+  UpdateUserPayload,
 } from './types';
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
@@ -75,6 +76,22 @@ export async function getCurrentUser() {
   const response = await api.get<User>('/auth/me');
 
   return response.data;
+}
+
+export async function getUsers() {
+  const response = await api.get<User[]>('/users');
+
+  return response.data;
+}
+
+export async function updateUser(id: string, payload: UpdateUserPayload) {
+  const response = await api.patch<User>(`/users/${id}`, payload);
+
+  return response.data;
+}
+
+export async function deleteUser(id: string) {
+  await api.delete(`/users/${id}`);
 }
 
 export async function getClients() {
