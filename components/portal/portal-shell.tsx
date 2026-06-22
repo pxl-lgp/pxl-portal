@@ -3,14 +3,17 @@
 import { useQuery } from "@tanstack/react-query";
 import {
   Archive,
+  Activity,
   BarChart3,
   Building2,
   CalendarDays,
   CheckSquare,
   Cog,
+  ClipboardList,
   FileCheck2,
   FileText,
   FolderOpen,
+  HeartPulse,
   LayoutDashboard,
   LayoutTemplate,
   LineChart,
@@ -19,6 +22,10 @@ import {
   ScrollText,
   UserCog,
   UserPlus,
+  Bell,
+  ShieldCheck,
+  Search,
+  Upload,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -71,9 +78,16 @@ const adminItems: NavItem[] = [
   { href: "/admin/approvals", label: "Approvals", icon: CheckSquare },
   { href: "/admin/analytics", label: "Analytics", icon: LineChart },
   { href: "/admin/reports", label: "Reports", icon: ScrollText },
+  { href: "/admin/client-health", label: "Health", icon: HeartPulse },
+  { href: "/admin/search", label: "Search", icon: Search },
+  { href: "/admin/import-export", label: "Import/Export", icon: Upload, roles: ["ADMIN"] },
   { href: "/admin/leads", label: "Leads", icon: UserPlus },
   { href: "/admin/assets", label: "Assets", icon: Archive },
   { href: "/admin/automation", label: "Automation", icon: Cog },
+  { href: "/admin/observability", label: "Observability", icon: Activity, roles: ["ADMIN"] },
+  { href: "/admin/audit-log", label: "Audit Log", icon: ClipboardList, roles: ["ADMIN"] },
+  { href: "/admin/notifications", label: "Notifications", icon: Bell, roles: ["ADMIN"] },
+  { href: "/admin/permissions", label: "Permissions", icon: ShieldCheck, roles: ["ADMIN"] },
   { href: "/admin/users", label: "Users", icon: UserCog, roles: ["ADMIN"] },
 ];
 
@@ -201,6 +215,12 @@ export function PortalShell({
                     </span>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/account">
+                      <UserCog />
+                      Account settings
+                    </Link>
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={logout} variant="destructive">
                     <LogOut />
                     Sign out

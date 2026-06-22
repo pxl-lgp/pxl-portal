@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, Pencil, RefreshCw, Save, ScrollText, X } from 'lucide-react';
 import { FormEvent, useMemo, useState } from 'react';
-import { createReport, getClients, getReports, updateReport } from '@/lib/api';
+import { createReport, getClients, getReports, markReportReady, sendReport, updateReport } from '@/lib/api';
 import { getApiErrorMessage } from '@/lib/errors';
 import { Report, ReportPayload } from '@/lib/types';
 
@@ -57,6 +57,14 @@ export default function ReportsPage() {
       setValues((current) => ({ ...current, title: '', summary: '', driveUrl: '' }));
       await queryClient.invalidateQueries({ queryKey: ['reports'] });
     },
+  });
+  const readyMutation = useMutation({
+    mutationFn: markReportReady,
+    onSuccess: async () => queryClient.invalidateQueries({ queryKey: ['reports'] }),
+  });
+  const sendMutation = useMutation({
+    mutationFn: sendReport,
+    onSuccess: async () => queryClient.invalidateQueries({ queryKey: ['reports'] }),
   });
   const saveMutation = editingId ? updateMutation : createMutation;
   const selectedClientId = values.clientId || clients[0]?.id || '';
@@ -140,6 +148,7 @@ export default function ReportsPage() {
                   <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                     <div>
                       <h3 className="font-black">{report.title}</h3>
+                      <span className="badge bg-slate-100 text-slate-800">{report.status}</span>
                       <p className="mt-1 text-sm text-muted-foreground">
                         {clientById.get(report.clientId)?.businessName ?? 'Unknown client'}
                       </p>
@@ -160,6 +169,13 @@ export default function ReportsPage() {
                       <Pencil className="h-4 w-4" />
                       Edit
                     </button>
+                    {report.status === 'DRAFT' ? (
+                      <button className="button button-secondary" onClick={() => readyMutation.mutate(report.id)} type="button">Mark ready</button>
+                    ) : null}
+                    {report.status === 'READY' ? (
+                      <button className="button button-primary" onClick={() => sendMutation.mutate(report.id)} type="button">Send to client</button>
+                    ) : null}
+                    {report.sentAt ? <span className="text-sm text-muted-foreground">Sent {new Date(report.sentAt).toLocaleString()}</span> : null}
                   </div>
                 </article>
               ))}

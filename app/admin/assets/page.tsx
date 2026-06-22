@@ -82,6 +82,7 @@ export default function AssetsPage() {
     },
   });
   const selectedClientId = values.clientId || clients[0]?.id || '';
+  const selectedClient = selectedClientId ? clientById.get(selectedClientId) : undefined;
   const totalVersions = assets.reduce((sum, asset) => sum + asset.version, 0);
   const linkedAssets = assets.filter((asset) => asset.contentItemId).length;
 
@@ -254,6 +255,25 @@ export default function AssetsPage() {
               Asset saved.
             </div>
           ) : null}
+          <div className="panel grid gap-3 p-5 text-sm">
+            <h3 className="font-black">Upload workflow</h3>
+            <ol className="grid gap-2 text-muted-foreground">
+              <li>1. Open the client Drive folder.</li>
+              <li>2. Upload the file to the matching campaign or asset folder.</li>
+              <li>3. Copy the share link and paste it into Drive URL.</li>
+              <li>4. Save the asset record and use auto-tag when helpful.</li>
+            </ol>
+            {selectedClient?.driveFolderUrl ? (
+              <a className="button button-secondary justify-center" href={selectedClient.driveFolderUrl} rel="noreferrer" target="_blank">
+                <ExternalLink className="h-4 w-4" />
+                Open client Drive folder
+              </a>
+            ) : (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-900">
+                This client does not have a Drive folder yet. Add one on the client detail page before uploading files.
+              </div>
+            )}
+          </div>
           <form className="panel grid gap-4 p-5" onSubmit={submit}>
             <div className="field">
               <label htmlFor="clientId">Client</label>

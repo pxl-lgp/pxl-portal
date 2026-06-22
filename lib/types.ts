@@ -1,10 +1,12 @@
 export type UserRole = 'ADMIN' | 'TEAM' | 'CLIENT';
+export type UserStatus = 'ACTIVE' | 'DISABLED';
 
 export type User = {
   id: string;
   email: string;
   name: string;
   role: UserRole;
+  status: UserStatus;
   createdAt: string;
   updatedAt: string;
 };
@@ -26,6 +28,23 @@ export type UpdateUserPayload = {
   name?: string;
   password?: string;
   role?: UserRole;
+  status?: UserStatus;
+};
+
+export type InviteUserPayload = {
+  email: string;
+  name: string;
+  role: UserRole;
+};
+
+export type UpdateProfilePayload = {
+  email?: string;
+  name?: string;
+};
+
+export type ChangePasswordPayload = {
+  currentPassword: string;
+  newPassword: string;
 };
 
 export type ClientStatus = 'LEAD' | 'ONBOARDING' | 'ACTIVE' | 'PAUSED' | 'ARCHIVED';
@@ -206,6 +225,38 @@ export type Approval = {
   updatedAt: string;
 };
 
+export type AutomationSummary = {
+  total: number;
+  failed: number;
+  pending: number;
+  succeeded: number;
+  lastFailureAt: string | null;
+  retryableFailures: number;
+};
+
+export type AuditLog = {
+  id: string;
+  actorUserId: string | null;
+  action: string;
+  entityType: string;
+  entityId: string | null;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type NotificationSetting = {
+  eventKey: string;
+  enabled: boolean;
+  recipients: string[];
+};
+
+export type Permission = {
+  key: string;
+  label: string;
+  roles: UserRole[];
+};
+
 export type ApprovalComment = {
   id: string;
   approvalId: string;
@@ -315,6 +366,8 @@ export type Report = {
   periodEnd: string;
   summary: string | null;
   driveUrl: string | null;
+  status: 'DRAFT' | 'READY' | 'SENT';
+  sentAt: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -326,6 +379,31 @@ export type ReportPayload = {
   periodEnd: string;
   summary?: string;
   driveUrl?: string;
+  status?: 'DRAFT' | 'READY' | 'SENT';
+};
+
+export type ClientHealth = {
+  clientId: string;
+  businessName: string;
+  score: number;
+  status: 'HEALTHY' | 'WATCH' | 'AT_RISK';
+  reasons: string[];
+};
+
+export type SearchResult = {
+  type: string;
+  id: string;
+  title: string;
+  href: string;
+};
+
+export type HealthStatus = {
+  status: string;
+  service: string;
+  timestamp: string;
+  database?: string;
+  uptime?: number;
+  memory?: number;
 };
 
 export type LeadStatus = 'NEW' | 'CONTACTED' | 'QUALIFIED' | 'WON' | 'LOST';

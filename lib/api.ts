@@ -2,6 +2,8 @@ import axios from 'axios';
 import { getAccessToken } from './auth';
 import {
   AutomationLog,
+  AutomationSummary,
+  AuditLog,
   Asset,
   AssetPayload,
   Approval,
@@ -19,7 +21,9 @@ import {
   BestTimeResult,
   Campaign,
   CampaignPayload,
+  ChangePasswordPayload,
   Client,
+  ClientHealth,
   ClientPortalOverview,
   ClientPayload,
   ContentItem,
@@ -30,17 +34,23 @@ import {
   ContentTemplatePayload,
   DriveFolderListing,
   DriveItem,
+  InviteUserPayload,
   Lead,
   LeadPayload,
   LeadUpdatePayload,
   OnboardingTask,
   OnboardingTaskStatus,
+  NotificationSetting,
+  Permission,
   RegisterPayload,
   Report,
   ReportPayload,
+  SearchResult,
+  HealthStatus,
   SocialConnection,
   MetaOauthUrlResponse,
   User,
+  UpdateProfilePayload,
   UpdateUserPayload,
 } from './types';
 
@@ -66,8 +76,22 @@ export async function login(email: string, password: string) {
   return response.data;
 }
 
+export async function forgotPassword(email: string) {
+  await api.post('/auth/forgot-password', { email });
+}
+
+export async function resetPassword(token: string, password: string) {
+  await api.post('/auth/reset-password', { token, password });
+}
+
 export async function registerUser(payload: RegisterPayload) {
   const response = await api.post<User>('/auth/register', payload);
+
+  return response.data;
+}
+
+export async function inviteUser(payload: InviteUserPayload) {
+  const response = await api.post<User>('/auth/invite', payload);
 
   return response.data;
 }
@@ -76,6 +100,16 @@ export async function getCurrentUser() {
   const response = await api.get<User>('/auth/me');
 
   return response.data;
+}
+
+export async function updateCurrentUser(payload: UpdateProfilePayload) {
+  const response = await api.patch<User>('/auth/me', payload);
+
+  return response.data;
+}
+
+export async function changeCurrentUserPassword(payload: ChangePasswordPayload) {
+  await api.patch('/auth/me/password', payload);
 }
 
 export async function getUsers() {
@@ -88,6 +122,10 @@ export async function updateUser(id: string, payload: UpdateUserPayload) {
   const response = await api.patch<User>(`/users/${id}`, payload);
 
   return response.data;
+}
+
+export async function sendUserPasswordReset(id: string) {
+  await api.post(`/auth/users/${id}/password-reset`);
 }
 
 export async function deleteUser(id: string) {
@@ -270,6 +308,80 @@ export async function updateApproval(id: string, payload: ApprovalDecisionPayloa
   return response.data;
 }
 
+export async function exportCsv(entity: string) {
+  const response = await api.get<string>(`/exports/${entity}`, { responseType: 'text' });
+
+  return response.data;
+}
+
+export async function importClients(rows: Array<Record<string, string>>) {
+  const response = await api.post<{ imported: number }>('/imports/clients', { rows });
+
+  return response.data;
+}
+
+export async function importLeads(rows: Array<Record<string, string>>) {
+  const response = await api.post<{ imported: number }>('/imports/leads', { rows });
+
+  return response.data;
+}
+
+export async function getClientHealth() {
+  const response = await api.get<ClientHealth[]>('/client-health');
+
+  return response.data;
+}
+
+export async function globalSearch(q: string) {
+  const response = await api.get<SearchResult[]>('/search', { params: { q } });
+
+  return response.data;
+}
+
+export async function getApiHealth() {
+  const baseUrl = api.defaults.baseURL?.replace(/\/api$/, '') ?? '';
+  const response = await axios.get<HealthStatus>(`${baseUrl}/health`);
+
+  return response.data;
+}
+
+export async function getApiReadiness() {
+  const baseUrl = api.defaults.baseURL?.replace(/\/api$/, '') ?? '';
+  const response = await axios.get<HealthStatus>(`${baseUrl}/health/ready`);
+
+  return response.data;
+}
+
+export async function getAutomationSummary() {
+  const response = await api.get<AutomationSummary>('/automation/summary');
+
+  return response.data;
+}
+
+export async function getAuditLogs(filters: { action?: string; entityType?: string } = {}) {
+  const response = await api.get<AuditLog[]>('/audit', { params: cleanParams(filters) });
+
+  return response.data;
+}
+
+export async function getNotificationSettings() {
+  const response = await api.get<NotificationSetting[]>('/settings/notifications');
+
+  return response.data;
+}
+
+export async function updateNotificationSetting(eventKey: string, payload: Partial<NotificationSetting>) {
+  const response = await api.patch<NotificationSetting>(`/settings/notifications/${eventKey}`, payload);
+
+  return response.data;
+}
+
+export async function getPermissions() {
+  const response = await api.get<Permission[]>('/permissions');
+
+  return response.data;
+}
+
 export async function getApprovalComments(id: string) {
   const response = await api.get<ApprovalComment[]>(`/approvals/${id}/comments`);
 
@@ -380,6 +492,18 @@ export async function createReport(payload: ReportPayload) {
 
 export async function updateReport(id: string, payload: Partial<ReportPayload>) {
   const response = await api.patch<Report>(`/reports/${id}`, payload);
+
+  return response.data;
+}
+
+export async function markReportReady(id: string) {
+  const response = await api.patch<Report>(`/reports/${id}/ready`);
+
+  return response.data;
+}
+
+export async function sendReport(id: string) {
+  const response = await api.patch<Report>(`/reports/${id}/send`);
 
   return response.data;
 }

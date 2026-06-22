@@ -24,6 +24,7 @@ export function ClientOnboardingPanel({ client }: { client: Client }) {
   const done = tasks.filter((task) => task.status === 'DONE').length;
   const progress = tasks.length ? Math.round((done / tasks.length) * 100) : 0;
   const missingInfo = getMissingInfo(client);
+  const isReady = missingInfo.length === 0 && progress === 100;
 
   return (
     <section className="rounded-xl border bg-card shadow-sm">
@@ -44,6 +45,11 @@ export function ClientOnboardingPanel({ client }: { client: Client }) {
           </div>
         </div>
         <Progress className="mt-4 h-2" value={progress} />
+        <div className={`mt-4 rounded-lg border p-3 text-sm font-semibold ${isReady ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
+          {isReady
+            ? 'Ready to activate: all onboarding tasks and core setup details are complete.'
+            : 'Not ready to activate: finish the checklist and resolve missing setup details first.'}
+        </div>
       </div>
 
       {missingInfo.length > 0 ? (

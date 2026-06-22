@@ -47,6 +47,8 @@ export default function ClientDashboardPage() {
   );
   const pendingApprovals = overview?.approvals.filter((approval) => approval.status === 'PENDING').length ?? 0;
   const publishedContent = overview?.contentItems.filter((item) => ['PUBLISHED', 'REPORTED'].includes(item.status)).length ?? 0;
+  const upcomingContent = overview?.contentItems.filter((item) => item.scheduledAt && new Date(item.scheduledAt) >= new Date()).length ?? 0;
+  const latestReport = overview?.reports.toSorted((a, b) => new Date(b.periodEnd).getTime() - new Date(a.periodEnd).getTime())[0];
 
   function decideApproval(approval: Approval, payload: ApprovalDecisionPayload) {
     decisionMutation.mutate({ id: approval.id, payload });
@@ -93,7 +95,15 @@ export default function ClientDashboardPage() {
         <Metric label="Content items" value={overview.contentItems.length} />
         <Metric label="Pending approvals" value={pendingApprovals} />
         <Metric label="Published" value={publishedContent} />
+        <Metric label="Upcoming" value={upcomingContent} />
       </section>
+
+      {latestReport ? (
+        <section className="panel flex flex-wrap items-center justify-between gap-3 p-5">
+          <div><h2 className="font-black">Latest report</h2><p className="mt-1 text-sm text-muted-foreground">{latestReport.title}</p></div>
+          {latestReport.driveUrl ? <a className="button button-primary" href={latestReport.driveUrl} rel="noreferrer" target="_blank">Open latest report</a> : null}
+        </section>
+      ) : null}
 
       <section className="panel grid gap-4 p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">

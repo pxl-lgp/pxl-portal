@@ -129,12 +129,12 @@ export function LoginForm() {
                   <div className="grid gap-2">
                     <div className="flex items-center justify-between">
                       <Label htmlFor="login-password">Password</Label>
-                      <a
-                        href="mailto:hello@pxl.digital?subject=Password%20reset"
+                      <Link
+                        href="/forgot-password"
                         className="text-xs text-primary underline-offset-4 hover:underline"
                       >
                         Forgot password?
-                      </a>
+                      </Link>
                     </div>
                     <div className="relative">
                       <Input

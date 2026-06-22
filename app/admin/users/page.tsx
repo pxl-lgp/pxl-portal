@@ -3,9 +3,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, CheckCircle2, Loader2, RefreshCw, Save, Trash2, UserCog } from 'lucide-react';
 import { FormEvent, useState } from 'react';
-import { deleteUser, getCurrentUser, getUsers, registerUser, updateUser } from '@/lib/api';
+import { deleteUser, getCurrentUser, getUsers, inviteUser, registerUser, sendUserPasswordReset, updateUser } from '@/lib/api';
 import { getApiErrorMessage } from '@/lib/errors';
-import { RegisterPayload, UpdateUserPayload, User, UserRole } from '@/lib/types';
+import { InviteUserPayload, RegisterPayload, UpdateUserPayload, User, UserRole, UserStatus } from '@/lib/types';
 
 const initialValues: RegisterPayload = {
   email: '',
@@ -14,16 +14,24 @@ const initialValues: RegisterPayload = {
   role: 'CLIENT',
 };
 
+const initialInviteValues: InviteUserPayload = {
+  email: '',
+  name: '',
+  role: 'CLIENT',
+};
+
 type EditableUser = {
   email: string;
   name: string;
   password: string;
   role: UserRole;
+  status: UserStatus;
 };
 
 export default function AdminUsersPage() {
   const queryClient = useQueryClient();
   const [values, setValues] = useState<RegisterPayload>(initialValues);
+  const [inviteValues, setInviteValues] = useState<InviteUserPayload>(initialInviteValues);
   const [editValues, setEditValues] = useState<Record<string, EditableUser>>({});
   const usersQuery = useQuery({ queryKey: ['users'], queryFn: getUsers });
   const currentUserQuery = useQuery({ queryKey: ['auth', 'me'], queryFn: getCurrentUser });
@@ -39,6 +47,19 @@ export default function AdminUsersPage() {
       }),
     onSuccess: async () => {
       setValues(initialValues);
+      await queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+  });
+
+  const inviteMutation = useMutation({
+    mutationFn: () =>
+      inviteUser({
+        ...inviteValues,
+        email: inviteValues.email.trim().toLowerCase(),
+        name: inviteValues.name.trim(),
+      }),
+    onSuccess: async () => {
+      setInviteValues(initialInviteValues);
       await queryClient.invalidateQueries({ queryKey: ['users'] });
     },
   });
@@ -59,8 +80,14 @@ export default function AdminUsersPage() {
     },
   });
 
+  const resetMutation = useMutation({ mutationFn: sendUserPasswordReset });
+
   function updateValue<Key extends keyof RegisterPayload>(key: Key, value: RegisterPayload[Key]) {
     setValues((current) => ({ ...current, [key]: value }));
+  }
+
+  function updateInviteValue<Key extends keyof InviteUserPayload>(key: Key, value: InviteUserPayload[Key]) {
+    setInviteValues((current) => ({ ...current, [key]: value }));
   }
 
   function updateEditValue<Key extends keyof EditableUser>(id: string, key: Key, value: EditableUser[Key]) {
@@ -78,6 +105,11 @@ export default function AdminUsersPage() {
     createMutation.mutate();
   }
 
+  function submitInvite(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    inviteMutation.mutate();
+  }
+
   function saveUser(user: User) {
     const editableUser = editValues[user.id];
 
@@ -89,6 +121,7 @@ export default function AdminUsersPage() {
       email: editableUser.email.trim().toLowerCase(),
       name: editableUser.name.trim(),
       role: editableUser.role,
+      status: editableUser.status,
     };
 
     if (editableUser.password.trim()) {
@@ -140,10 +173,10 @@ export default function AdminUsersPage() {
             </div>
           ) : null}
 
-          {deleteMutation.isSuccess ? (
+          {deleteMutation.isSuccess || resetMutation.isSuccess ? (
             <div className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
               <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-              User account deleted.
+              {resetMutation.isSuccess ? 'Password reset email sent.' : 'User account deleted.'}
             </div>
           ) : null}
 
@@ -161,7 +194,7 @@ export default function AdminUsersPage() {
 
                 return (
                   <article className="rounded-xl border bg-background p-4" key={user.id}>
-                    <div className="grid gap-3 lg:grid-cols-[1fr_1fr_150px_1fr_auto] lg:items-end">
+                    <div className="grid gap-3 lg:grid-cols-[1fr_1fr_140px_140px_1fr_auto] lg:items-end">
                       <div className="field">
                         <label htmlFor={`name-${user.id}`}>Name</label>
                         <input
@@ -200,6 +233,20 @@ export default function AdminUsersPage() {
                       </div>
 
                       <div className="field">
+                        <label htmlFor={`status-${user.id}`}>Status</label>
+                        <select
+                          className="select"
+                          disabled={isCurrentUser}
+                          id={`status-${user.id}`}
+                          onChange={(event) => updateEditValue(user.id, 'status', event.target.value as UserStatus)}
+                          value={editableUser.status}
+                        >
+                          <option value="ACTIVE">Active</option>
+                          <option value="DISABLED">Disabled</option>
+                        </select>
+                      </div>
+
+                      <div className="field">
                         <label htmlFor={`password-${user.id}`}>New password</label>
                         <input
                           autoComplete="new-password"
@@ -232,6 +279,14 @@ export default function AdminUsersPage() {
                           <Trash2 className="h-4 w-4" />
                           {isDeleting ? 'Deleting' : 'Delete'}
                         </button>
+                        <button
+                          className="button button-secondary"
+                          disabled={resetMutation.isPending && resetMutation.variables === user.id}
+                          onClick={() => resetMutation.mutate(user.id)}
+                          type="button"
+                        >
+                          Reset
+                        </button>
                       </div>
                     </div>
                     <p className="mt-2 text-xs text-muted-foreground">
@@ -243,6 +298,74 @@ export default function AdminUsersPage() {
             </div>
           )}
         </div>
+
+        <div className="grid content-start gap-6">
+        <form className="panel grid content-start gap-5 p-5" onSubmit={submitInvite}>
+          <div className="flex items-center gap-2">
+            <UserCog className="h-5 w-5 text-[var(--brand)]" />
+            <h2 className="font-black">Invite user by email</h2>
+          </div>
+
+          {inviteMutation.isSuccess ? (
+            <div className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+              Invite email sent.
+            </div>
+          ) : null}
+
+          {inviteMutation.isError ? (
+            <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              {getApiErrorMessage(inviteMutation.error, 'Unable to invite user.')}
+            </div>
+          ) : null}
+
+          <div className="grid gap-4">
+            <div className="field">
+              <label htmlFor="invite-name">Name</label>
+              <input
+                className="input"
+                id="invite-name"
+                minLength={2}
+                onChange={(event) => updateInviteValue('name', event.target.value)}
+                required
+                value={inviteValues.name}
+              />
+            </div>
+
+            <div className="field">
+              <label htmlFor="invite-email">Email</label>
+              <input
+                autoComplete="email"
+                className="input"
+                id="invite-email"
+                onChange={(event) => updateInviteValue('email', event.target.value)}
+                required
+                type="email"
+                value={inviteValues.email}
+              />
+            </div>
+
+            <div className="field">
+              <label htmlFor="invite-role">Role</label>
+              <select
+                className="select"
+                id="invite-role"
+                onChange={(event) => updateInviteValue('role', event.target.value as UserRole)}
+                value={inviteValues.role}
+              >
+                <option value="CLIENT">Client</option>
+                <option value="TEAM">Team</option>
+                <option value="ADMIN">Admin</option>
+              </select>
+            </div>
+          </div>
+
+          <button className="button button-primary justify-center" disabled={inviteMutation.isPending} type="submit">
+            <UserCog className="h-4 w-4" />
+            {inviteMutation.isPending ? 'Sending invite' : 'Send invite'}
+          </button>
+        </form>
 
         <form className="panel grid content-start gap-5 p-5" onSubmit={submit}>
           <div className="flex items-center gap-2">
@@ -330,6 +453,7 @@ export default function AdminUsersPage() {
             {createMutation.isPending ? 'Creating account' : 'Create account'}
           </button>
         </form>
+        </div>
       </section>
     </>
   );
@@ -341,6 +465,7 @@ function toEditableUser(user: User): EditableUser {
     name: user.name,
     password: '',
     role: user.role,
+    status: user.status,
   };
 }
 

@@ -7,6 +7,7 @@ const adminUser = {
   email: 'admin@pxl.local',
   name: 'PXL Admin',
   role: 'ADMIN',
+  status: 'ACTIVE',
   createdAt: now,
   updatedAt: now,
 };
@@ -16,6 +17,7 @@ const clientUser = {
   email: 'client@example.com',
   name: 'Client User',
   role: 'CLIENT',
+  status: 'ACTIVE',
   createdAt: now,
   updatedAt: now,
 };
@@ -172,8 +174,22 @@ async function mockApi(page: Page, options: { role?: 'ADMIN' | 'CLIENT' } = {}) 
   const role = options.role ?? 'ADMIN';
   const user = role === 'CLIENT' ? clientUser : adminUser;
   const clients = [{ ...baseClient }];
+  const users = [{ ...adminUser }, { ...clientUser }];
   const campaigns = [{ ...baseCampaign }];
   const assets = [{ ...baseAsset }];
+  const reports: Array<{
+    id: string;
+    clientId: string;
+    title: string;
+    periodStart: string;
+    periodEnd: string;
+    summary: string;
+    driveUrl: string;
+    status: string;
+    sentAt: string | null;
+    createdAt: string;
+    updatedAt: string;
+  }> = [{ id: 'report-1', clientId: 'client-1', title: 'June Report', periodStart: now, periodEnd: now, summary: 'Strong month.', driveUrl: 'https://drive.example/report', status: 'READY', sentAt: null, createdAt: now, updatedAt: now }];
   const onboardingTasks = baseOnboardingTasks.map((task) => ({ ...task }));
   const contentItems: ContentMock[] = [{ ...baseContent }];
   const approvals: ApprovalMock[] = [{ ...baseApproval }];
@@ -191,6 +207,41 @@ async function mockApi(page: Page, options: { role?: 'ADMIN' | 'CLIENT' } = {}) 
 
     if (path === '/auth/me' && request.method() === 'GET') {
       await route.fulfill({ json: user });
+      return;
+    }
+
+    if (path === '/auth/invite' && request.method() === 'POST') {
+      const payload = request.postDataJSON();
+      const invited = { ...clientUser, ...payload, id: 'user-invited', status: 'ACTIVE', createdAt: now, updatedAt: now };
+      users.push(invited);
+      await route.fulfill({ status: 201, json: invited });
+      return;
+    }
+
+    if (path === '/auth/forgot-password' && request.method() === 'POST') {
+      await route.fulfill({ json: {} });
+      return;
+    }
+
+    if (path === '/auth/reset-password' && request.method() === 'POST') {
+      await route.fulfill({ json: {} });
+      return;
+    }
+
+    if (path === '/auth/users/user-client/password-reset' && request.method() === 'POST') {
+      await route.fulfill({ json: {} });
+      return;
+    }
+
+    if (path === '/users' && request.method() === 'GET') {
+      await route.fulfill({ json: users });
+      return;
+    }
+
+    if (path === '/users/user-client' && request.method() === 'PATCH') {
+      const payload = request.postDataJSON();
+      users[1] = { ...users[1], ...payload, updatedAt: now };
+      await route.fulfill({ json: users[1] });
       return;
     }
 
@@ -316,7 +367,7 @@ async function mockApi(page: Page, options: { role?: 'ADMIN' | 'CLIENT' } = {}) 
           contentItems,
           approvals,
           assets,
-          reports: [],
+          reports,
         },
       });
       return;
@@ -395,6 +446,42 @@ async function mockApi(page: Page, options: { role?: 'ADMIN' | 'CLIENT' } = {}) 
       return;
     }
 
+    if (path === '/reports' && request.method() === 'GET') {
+      await route.fulfill({ json: reports });
+      return;
+    }
+
+    if (path === '/reports/report-1/send' && request.method() === 'PATCH') {
+      reports[0] = { ...reports[0], status: 'SENT', sentAt: now, updatedAt: now };
+      await route.fulfill({ json: reports[0] });
+      return;
+    }
+
+    if (path === '/client-health' && request.method() === 'GET') {
+      await route.fulfill({ json: [{ clientId: 'client-1', businessName: 'Acme Coffee', score: 80, status: 'WATCH', reasons: ['No assets'] }] });
+      return;
+    }
+
+    if (path === '/search' && request.method() === 'GET') {
+      await route.fulfill({ json: [{ type: 'client', id: 'client-1', title: 'Acme Coffee', href: '/admin/clients/client-1' }] });
+      return;
+    }
+
+    if (path.startsWith('/exports/') && request.method() === 'GET') {
+      await route.fulfill({ body: 'businessName,email\nAcme Coffee,ana@acme.test', headers: { 'content-type': 'text/csv' } });
+      return;
+    }
+
+    if (path === '/imports/leads' && request.method() === 'POST') {
+      await route.fulfill({ json: { imported: 1 } });
+      return;
+    }
+
+    if (path === '/imports/clients' && request.method() === 'POST') {
+      await route.fulfill({ json: { imported: 1 } });
+      return;
+    }
+
     if (path === '/onboarding-tasks' && request.method() === 'GET') {
       await route.fulfill({ json: onboardingTasks });
       return;
@@ -413,7 +500,33 @@ async function mockApi(page: Page, options: { role?: 'ADMIN' | 'CLIENT' } = {}) 
     }
 
     if (path === '/automation/logs' && request.method() === 'GET') {
-      await route.fulfill({ json: [] });
+      await route.fulfill({ json: [{ id: 'automation-1', eventName: 'drive-folder-provisioned', status: 'FAILED', entityType: 'client', entityId: 'client-1', payload: {}, response: {}, errorMessage: 'Drive quota exceeded', createdAt: now, updatedAt: now }] });
+      return;
+    }
+
+    if (path === '/automation/summary' && request.method() === 'GET') {
+      await route.fulfill({ json: { total: 1, failed: 1, pending: 0, succeeded: 0, retryableFailures: 1, lastFailureAt: now } });
+      return;
+    }
+
+    if (path === '/audit' && request.method() === 'GET') {
+      await route.fulfill({ json: [{ id: 'audit-1', actorUserId: 'user-admin', action: 'user.updated', entityType: 'user', entityId: 'user-client', metadata: { fields: ['status'] }, createdAt: now, updatedAt: now }] });
+      return;
+    }
+
+    if (path === '/settings/notifications' && request.method() === 'GET') {
+      await route.fulfill({ json: [{ eventKey: 'new-lead', enabled: true, recipients: ['ops@pxl.local'] }] });
+      return;
+    }
+
+    if (path === '/settings/notifications/new-lead' && request.method() === 'PATCH') {
+      const payload = request.postDataJSON();
+      await route.fulfill({ json: { eventKey: 'new-lead', enabled: payload.enabled ?? true, recipients: payload.recipients ?? [] } });
+      return;
+    }
+
+    if (path === '/permissions' && request.method() === 'GET') {
+      await route.fulfill({ json: [{ key: 'users.manage', label: 'Manage users', roles: ['ADMIN'] }] });
       return;
     }
 
@@ -464,7 +577,7 @@ test('admin can create a campaign', async ({ page }) => {
   await page.getByRole('button', { name: /save campaign/i }).click();
 
   await expect(page.getByText('Campaign saved.')).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Holiday Growth Sprint' })).toBeVisible();
+  await expect(page.getByText('Holiday Growth Sprint')).toBeVisible();
 });
 
 test('admin can track client onboarding progress', async ({ page }) => {
@@ -581,4 +694,85 @@ test('client can comment on an approval thread', async ({ page }) => {
   await page.getByRole('button', { name: /^send$/i }).click();
 
   await expect(page.getByText('Looks good from our side.')).toBeVisible();
+});
+
+test('admin can invite and disable a user', async ({ page }) => {
+  await signInAs(page);
+  await mockApi(page);
+
+  await page.goto('/admin/users');
+  const inviteForm = page.locator('form').filter({ hasText: 'Invite user by email' });
+  await inviteForm.getByLabel('Name').fill('Invited User');
+  await inviteForm.getByLabel('Email').fill('invited@example.com');
+  await inviteForm.getByRole('button', { name: /send invite/i }).click();
+
+  await expect(page.getByText('Invite email sent.')).toBeVisible();
+
+  const clientRow = page.locator('input[value="client@example.com"]').locator('xpath=ancestor::article');
+  await clientRow.locator('select').nth(1).selectOption('DISABLED');
+  await clientRow.getByRole('button', { name: /^save$/i }).click();
+
+  await expect(page.getByText('User account updated.')).toBeVisible();
+});
+
+test('user can request and complete password reset', async ({ page }) => {
+  await mockApi(page);
+
+  await page.goto('/forgot-password');
+  await page.getByLabel('Email').fill('client@example.com');
+  await page.getByRole('button', { name: /send reset link/i }).click();
+
+  await expect(page.getByText(/reset email has been sent/i)).toBeVisible();
+
+  await page.goto('/reset-password?token=test-token');
+  await page.getByLabel('New password').fill('new-password-123');
+  await page.getByRole('button', { name: /save password/i }).click();
+
+  await expect(page.getByText('Password updated. You can now log in.')).toBeVisible();
+});
+
+test('admin can review audit logs, notifications, permissions, and automation health', async ({ page }) => {
+  await signInAs(page);
+  await mockApi(page);
+
+  await page.goto('/admin/audit-log');
+  await expect(page.getByRole('heading', { name: 'Audit log' })).toBeVisible();
+  await expect(page.locator('article').filter({ hasText: 'user.updated' })).toBeVisible();
+
+  await page.goto('/admin/notifications');
+  await expect(page.getByRole('heading', { name: 'Notification settings' })).toBeVisible();
+  await page.getByLabel('Recipients').fill('ops@pxl.local, owner@pxl.local');
+  await page.getByRole('button', { name: /^save$/i }).click();
+
+  await page.goto('/admin/permissions');
+  await expect(page.getByRole('heading', { name: 'Permissions' })).toBeVisible();
+  await expect(page.getByText('Manage users')).toBeVisible();
+
+  await page.goto('/admin/automation');
+  await expect(page.getByText('Drive quota exceeded')).toBeVisible();
+  await expect(page.getByText('Retryable')).toBeVisible();
+});
+
+test('admin can use reports delivery, client health, search, and import export tools', async ({ page }) => {
+  await signInAs(page);
+  await mockApi(page);
+
+  await page.goto('/admin/reports');
+  await expect(page.getByText('June Report')).toBeVisible();
+  await page.getByRole('button', { name: /send to client/i }).click();
+  await expect(page.getByText('SENT', { exact: true })).toBeVisible();
+
+  await page.goto('/admin/client-health');
+  await expect(page.getByText('Acme Coffee')).toBeVisible();
+  await expect(page.getByText('WATCH')).toBeVisible();
+
+  await page.goto('/admin/search');
+  await page.getByPlaceholder('Search anything').fill('Acme');
+  await expect(page.getByText('Acme Coffee')).toBeVisible();
+
+  await page.goto('/admin/import-export');
+  await expect(page.getByRole('heading', { name: 'Import / Export' })).toBeVisible();
+  await page.getByRole('textbox').fill('businessName,email\nNew Lead,new@example.com');
+  await page.getByRole('button', { name: /^import$/i }).click();
+  await expect(page.getByText('Imported 1 rows.')).toBeVisible();
 });

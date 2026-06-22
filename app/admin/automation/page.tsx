@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, Cog, RefreshCw, RotateCcw } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { getAutomationLogs, retryAutomationLog } from '@/lib/api';
+import { getAutomationLogs, getAutomationSummary, retryAutomationLog } from '@/lib/api';
 import { getApiErrorMessage } from '@/lib/errors';
 import { AutomationLog, AutomationStatus } from '@/lib/types';
 
@@ -22,10 +22,12 @@ export default function AutomationPage() {
     queryKey: ['automation', 'logs', status || 'all'],
     queryFn: () => getAutomationLogs(status || undefined),
   });
+  const summaryQuery = useQuery({ queryKey: ['automation', 'summary'], queryFn: getAutomationSummary });
   const retryMutation = useMutation({
     mutationFn: (id: string) => retryAutomationLog(id),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['automation', 'logs'] });
+      await queryClient.invalidateQueries({ queryKey: ['automation', 'summary'] });
     },
   });
   const logs = useMemo(() => logsQuery.data ?? [], [logsQuery.data]);
@@ -51,6 +53,19 @@ export default function AutomationPage() {
 
       {retryMutation.isError ? (
         <ErrorPanel message={getApiErrorMessage(retryMutation.error, 'Retry failed.')} />
+      ) : null}
+
+      <section className="grid gap-3 md:grid-cols-4">
+        <Metric label="Total events" value={summaryQuery.data?.total ?? logs.length} />
+        <Metric label="Failed" value={summaryQuery.data?.failed ?? failedCount} tone="red" />
+        <Metric label="Pending" value={summaryQuery.data?.pending ?? 0} tone="amber" />
+        <Metric label="Retryable" value={summaryQuery.data?.retryableFailures ?? 0} tone="sky" />
+      </section>
+
+      {summaryQuery.data?.lastFailureAt ? (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+          Last automation failure: {new Date(summaryQuery.data.lastFailureAt).toLocaleString()}
+        </div>
       ) : null}
       {retryMutation.isSuccess ? (
         <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-800">
@@ -105,6 +120,17 @@ export default function AutomationPage() {
         )}
       </section>
     </>
+  );
+}
+
+function Metric({ label, value, tone = 'slate' }: { label: string; value: number; tone?: 'slate' | 'red' | 'amber' | 'sky' }) {
+  const color = tone === 'red' ? 'text-red-700' : tone === 'amber' ? 'text-amber-700' : tone === 'sky' ? 'text-sky-700' : 'text-foreground';
+
+  return (
+    <div className="panel p-4">
+      <div className="text-xs font-bold uppercase text-muted-foreground">{label}</div>
+      <div className={`mt-1 text-2xl font-black ${color}`}>{value.toLocaleString()}</div>
+    </div>
   );
 }
 
