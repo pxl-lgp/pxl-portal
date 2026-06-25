@@ -69,36 +69,76 @@ type NavItem = {
   roles?: UserRole[];
 };
 
-const adminItems: NavItem[] = [
-  { href: "/admin/super-admin", label: "Super Admin", icon: SlidersHorizontal, roles: ["SUPER_ADMIN"] },
-  { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/clients", label: "Clients", icon: Building2 },
-  { href: "/admin/content", label: "Content", icon: FileText },
-  { href: "/admin/content-templates", label: "Templates", icon: LayoutTemplate },
-  { href: "/admin/calendar", label: "Calendar", icon: CalendarDays },
-  { href: "/admin/campaigns", label: "Campaigns", icon: Megaphone },
-  { href: "/admin/approvals", label: "Approvals", icon: CheckSquare },
-  { href: "/admin/analytics", label: "Analytics", icon: LineChart },
-  { href: "/admin/reports", label: "Reports", icon: ScrollText },
-  { href: "/admin/client-health", label: "Health", icon: HeartPulse },
-  { href: "/admin/search", label: "Search", icon: Search },
-  { href: "/admin/import-export", label: "Import/Export", icon: Upload, roles: ["SUPER_ADMIN", "ADMIN"] },
-  { href: "/admin/leads", label: "Leads", icon: UserPlus },
-  { href: "/admin/assets", label: "Assets", icon: Archive },
-  { href: "/admin/automation", label: "Automation", icon: Cog },
-  { href: "/admin/observability", label: "Observability", icon: Activity, roles: ["SUPER_ADMIN", "ADMIN"] },
-  { href: "/admin/audit-log", label: "Audit Log", icon: ClipboardList, roles: ["SUPER_ADMIN", "ADMIN"] },
-  { href: "/admin/notifications", label: "Notifications", icon: Bell, roles: ["SUPER_ADMIN", "ADMIN"] },
-  { href: "/admin/permissions", label: "Permissions", icon: ShieldCheck, roles: ["SUPER_ADMIN", "ADMIN"] },
-  { href: "/admin/users", label: "Users", icon: UserCog, roles: ["SUPER_ADMIN", "ADMIN"] },
+type NavGroup = {
+  label: string;
+  items: NavItem[];
+};
+
+const adminGroups: NavGroup[] = [
+  {
+    label: "Platform",
+    items: [
+      { href: "/admin/super-admin", label: "Super Admin", icon: SlidersHorizontal, roles: ["SUPER_ADMIN"] },
+    ],
+  },
+  {
+    label: "Overview",
+    items: [
+      { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/admin/search", label: "Search", icon: Search },
+      { href: "/admin/client-health", label: "Health", icon: HeartPulse },
+    ],
+  },
+  {
+    label: "Client Work",
+    items: [
+      { href: "/admin/clients", label: "Clients", icon: Building2 },
+      { href: "/admin/leads", label: "Leads", icon: UserPlus },
+      { href: "/admin/campaigns", label: "Campaigns", icon: Megaphone },
+      { href: "/admin/content", label: "Content", icon: FileText },
+      { href: "/admin/content-templates", label: "Templates", icon: LayoutTemplate },
+      { href: "/admin/calendar", label: "Calendar", icon: CalendarDays },
+      { href: "/admin/approvals", label: "Approvals", icon: CheckSquare },
+      { href: "/admin/assets", label: "Assets", icon: Archive },
+    ],
+  },
+  {
+    label: "Performance",
+    items: [
+      { href: "/admin/analytics", label: "Analytics", icon: LineChart },
+      { href: "/admin/reports", label: "Reports", icon: ScrollText },
+      { href: "/admin/automation", label: "Automation", icon: Cog },
+    ],
+  },
+  {
+    label: "Administration",
+    items: [
+      { href: "/admin/users", label: "Users", icon: UserCog, roles: ["SUPER_ADMIN", "ADMIN"] },
+      { href: "/admin/permissions", label: "Permissions", icon: ShieldCheck, roles: ["SUPER_ADMIN", "ADMIN"] },
+      { href: "/admin/notifications", label: "Notifications", icon: Bell, roles: ["SUPER_ADMIN", "ADMIN"] },
+      { href: "/admin/audit-log", label: "Audit Log", icon: ClipboardList, roles: ["SUPER_ADMIN", "ADMIN"] },
+      { href: "/admin/import-export", label: "Import/Export", icon: Upload, roles: ["SUPER_ADMIN", "ADMIN"] },
+      { href: "/admin/observability", label: "Observability", icon: Activity, roles: ["SUPER_ADMIN", "ADMIN"] },
+    ],
+  },
 ];
 
-const clientItems: NavItem[] = [
-  { href: "/client/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/client/files", label: "Files", icon: FolderOpen },
-  { href: "/client/dashboard#approvals", label: "Approvals", icon: FileCheck2 },
-  { href: "/client/dashboard#assets", label: "Assets", icon: Archive },
-  { href: "/client/dashboard#reports", label: "Reports", icon: ScrollText },
+const clientGroups: NavGroup[] = [
+  {
+    label: "Your Account",
+    items: [
+      { href: "/client/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/client/files", label: "Files", icon: FolderOpen },
+    ],
+  },
+  {
+    label: "Reviews",
+    items: [
+      { href: "/client/dashboard#approvals", label: "Approvals", icon: FileCheck2 },
+      { href: "/client/dashboard#assets", label: "Assets", icon: Archive },
+      { href: "/client/dashboard#reports", label: "Reports", icon: ScrollText },
+    ],
+  },
 ];
 
 export function PortalShell({
@@ -115,9 +155,13 @@ export function PortalShell({
     queryFn: getCurrentUser,
   });
   const user = userQuery.data;
-  const items = (mode === "admin" ? adminItems : clientItems).filter(
-    (item) => !item.roles || (user ? item.roles.includes(user.role) : false),
-  );
+  const groups = (mode === "admin" ? adminGroups : clientGroups)
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => !item.roles || (user ? item.roles.includes(user.role) : false)),
+    }))
+    .filter((group) => group.items.length > 0);
+  const items = groups.flatMap((group) => group.items);
   // Match exact path or a nested route, so "/admin/content" doesn't claim "/admin/content-templates".
   const matchesPath = (href: string) =>
     !href.includes("#") && (pathname === href || pathname.startsWith(`${href}/`));
@@ -165,30 +209,30 @@ export function PortalShell({
           </SidebarMenu>
         </SidebarHeader>
         <SidebarContent>
-          <SidebarGroup>
-            <SidebarGroupLabel>
-              {mode === "admin" ? "Workspace" : "Your account"}
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {items.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = matchesPath(item.href);
+          {groups.map((group) => (
+            <SidebarGroup key={group.label}>
+              <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {group.items.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = matchesPath(item.href);
 
-                  return (
-                    <SidebarMenuItem key={item.href}>
-                      <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
-                        <Link href={item.href}>
-                          <Icon />
-                          <span>{item.label}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+                    return (
+                      <SidebarMenuItem key={item.href}>
+                        <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
+                          <Link href={item.href}>
+                            <Icon />
+                            <span>{item.label}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          ))}
         </SidebarContent>
         <SidebarFooter className="border-t border-sidebar-border">
           <SidebarMenu>
