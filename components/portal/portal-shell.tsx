@@ -25,6 +25,7 @@ import {
   Bell,
   ShieldCheck,
   Search,
+  SlidersHorizontal,
   Upload,
 } from "lucide-react";
 import Link from "next/link";
@@ -69,6 +70,7 @@ type NavItem = {
 };
 
 const adminItems: NavItem[] = [
+  { href: "/admin/super-admin", label: "Super Admin", icon: SlidersHorizontal, roles: ["SUPER_ADMIN"] },
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/clients", label: "Clients", icon: Building2 },
   { href: "/admin/content", label: "Content", icon: FileText },
@@ -80,15 +82,15 @@ const adminItems: NavItem[] = [
   { href: "/admin/reports", label: "Reports", icon: ScrollText },
   { href: "/admin/client-health", label: "Health", icon: HeartPulse },
   { href: "/admin/search", label: "Search", icon: Search },
-  { href: "/admin/import-export", label: "Import/Export", icon: Upload, roles: ["ADMIN"] },
+  { href: "/admin/import-export", label: "Import/Export", icon: Upload, roles: ["SUPER_ADMIN", "ADMIN"] },
   { href: "/admin/leads", label: "Leads", icon: UserPlus },
   { href: "/admin/assets", label: "Assets", icon: Archive },
   { href: "/admin/automation", label: "Automation", icon: Cog },
-  { href: "/admin/observability", label: "Observability", icon: Activity, roles: ["ADMIN"] },
-  { href: "/admin/audit-log", label: "Audit Log", icon: ClipboardList, roles: ["ADMIN"] },
-  { href: "/admin/notifications", label: "Notifications", icon: Bell, roles: ["ADMIN"] },
-  { href: "/admin/permissions", label: "Permissions", icon: ShieldCheck, roles: ["ADMIN"] },
-  { href: "/admin/users", label: "Users", icon: UserCog, roles: ["ADMIN"] },
+  { href: "/admin/observability", label: "Observability", icon: Activity, roles: ["SUPER_ADMIN", "ADMIN"] },
+  { href: "/admin/audit-log", label: "Audit Log", icon: ClipboardList, roles: ["SUPER_ADMIN", "ADMIN"] },
+  { href: "/admin/notifications", label: "Notifications", icon: Bell, roles: ["SUPER_ADMIN", "ADMIN"] },
+  { href: "/admin/permissions", label: "Permissions", icon: ShieldCheck, roles: ["SUPER_ADMIN", "ADMIN"] },
+  { href: "/admin/users", label: "Users", icon: UserCog, roles: ["SUPER_ADMIN", "ADMIN"] },
 ];
 
 const clientItems: NavItem[] = [

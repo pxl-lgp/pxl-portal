@@ -1,8 +1,9 @@
-export type UserRole = 'ADMIN' | 'TEAM' | 'CLIENT';
+export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'TEAM' | 'CLIENT';
 export type UserStatus = 'ACTIVE' | 'DISABLED';
 
 export type User = {
   id: string;
+  organizationId: string;
   email: string;
   name: string;
   role: UserRole;
@@ -255,6 +256,21 @@ export type Permission = {
   key: string;
   label: string;
   roles: UserRole[];
+};
+
+export type Organization = {
+  id: string;
+  name: string;
+  slug: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type OrganizationFeature = {
+  key: string;
+  label: string;
+  description: string;
+  enabled: boolean;
 };
 
 export type ApprovalComment = {

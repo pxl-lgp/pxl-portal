@@ -74,7 +74,7 @@ export default function DataDeletionPage() {
           <section>
             <h2 className="font-heading text-2xl font-bold uppercase text-foreground">5. Meta Account Disconnection</h2>
             <p className="mt-3">
-              You can also remove PXL's access from your Meta account by going to your Facebook or Meta business
+              You can also remove PXL&apos;s access from your Meta account by going to your Facebook or Meta business
               integration settings and removing the connected app. This revokes future access from Meta.
             </p>
           </section>

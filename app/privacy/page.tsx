@@ -58,7 +58,7 @@ export default function PrivacyPolicyPage() {
               If a user connects a Meta account, we only request permissions needed to list authorized Pages, read basic
               Page or Instagram account information, and publish approved content on behalf of the connected Page or
               Instagram business account. We do not sell Meta data. Access can be revoked by disconnecting the account
-              in the portal or from Meta's business integration settings.
+              in the portal or from Meta&apos;s business integration settings.
             </p>
           </section>
 

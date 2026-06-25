@@ -5,7 +5,7 @@ import { ShieldCheck } from 'lucide-react';
 import { getPermissions } from '@/lib/api';
 import { UserRole } from '@/lib/types';
 
-const roles: UserRole[] = ['ADMIN', 'TEAM', 'CLIENT'];
+const roles: UserRole[] = ['SUPER_ADMIN', 'ADMIN', 'TEAM', 'CLIENT'];
 
 export default function PermissionsPage() {
   const query = useQuery({ queryKey: ['permissions'], queryFn: getPermissions });

@@ -41,6 +41,8 @@ import {
   OnboardingTask,
   OnboardingTaskStatus,
   NotificationSetting,
+  Organization,
+  OrganizationFeature,
   Permission,
   RegisterPayload,
   Report,
@@ -378,6 +380,30 @@ export async function updateNotificationSetting(eventKey: string, payload: Parti
 
 export async function getPermissions() {
   const response = await api.get<Permission[]>('/permissions');
+
+  return response.data;
+}
+
+export async function getOrganizations() {
+  const response = await api.get<Organization[]>('/organizations');
+
+  return response.data;
+}
+
+export async function createOrganization(payload: { name: string; slug: string }) {
+  const response = await api.post<Organization>('/organizations', payload);
+
+  return response.data;
+}
+
+export async function getOrganizationFeatures(organizationId: string) {
+  const response = await api.get<OrganizationFeature[]>(`/organizations/${organizationId}/features`);
+
+  return response.data;
+}
+
+export async function updateOrganizationFeature(organizationId: string, featureKey: string, enabled: boolean) {
+  const response = await api.patch(`/organizations/${organizationId}/features/${featureKey}`, { enabled });
 
   return response.data;
 }
