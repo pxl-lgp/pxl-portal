@@ -94,6 +94,7 @@ const adminGroups: NavGroup[] = [
     items: [
       { href: "/admin/clients", label: "Clients", icon: Building2 },
       { href: "/admin/leads", label: "Leads", icon: UserPlus },
+      { href: "/admin/workspace", label: "Workspace", icon: FolderOpen },
       { href: "/admin/campaigns", label: "Campaigns", icon: Megaphone },
       { href: "/admin/content", label: "Content", icon: FileText },
       { href: "/admin/content-templates", label: "Templates", icon: LayoutTemplate },

@@ -24,6 +24,8 @@ type ClientFormValues = {
   servicesNeeded: string;
   status: ClientStatus;
   driveFolderUrl: string;
+  createPortalUser: boolean;
+  portalPassword: string;
 };
 
 export function ClientForm({
@@ -50,6 +52,8 @@ export function ClientForm({
       servicesNeeded: client?.servicesNeeded.join(', ') ?? '',
       status: client?.status ?? 'ONBOARDING',
       driveFolderUrl: client?.driveFolderUrl ?? '',
+      createPortalUser: false,
+      portalPassword: '',
     }),
     [client],
   );
@@ -85,6 +89,8 @@ export function ClientForm({
       servicesNeeded,
       status: values.status,
       driveFolderUrl: values.driveFolderUrl.trim() || undefined,
+      createPortalUser: client ? undefined : values.createPortalUser || undefined,
+      portalPassword: client || !values.createPortalUser ? undefined : values.portalPassword,
     });
   }
 
@@ -155,6 +161,32 @@ export function ClientForm({
           </div>
         ) : null}
       </div>
+
+      {!client ? (
+        <div className="grid gap-4 rounded-xl border border-border/70 bg-muted/20 p-4">
+          <label className="flex items-center gap-2 text-sm font-medium">
+            <input
+              checked={values.createPortalUser}
+              className="size-4"
+              onChange={(event) => updateValue('createPortalUser', event.target.checked)}
+              type="checkbox"
+            />
+            Create linked client portal account
+          </label>
+          {values.createPortalUser ? (
+            <TextField
+              label="Portal password"
+              onChange={(value) => updateValue('portalPassword', value)}
+              required
+              type="password"
+              value={values.portalPassword}
+            />
+          ) : null}
+          <p className="text-xs text-muted-foreground">
+            Uses the client email and contact person above. This prevents orphaned client users.
+          </p>
+        </div>
+      ) : null}
 
       <TextField
         label="Services needed"

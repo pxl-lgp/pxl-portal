@@ -52,6 +52,7 @@ export type ClientStatus = 'LEAD' | 'ONBOARDING' | 'ACTIVE' | 'PAUSED' | 'ARCHIV
 
 export type Client = {
   id: string;
+  userId: string | null;
   businessName: string;
   industry: string | null;
   contactPerson: string | null;
@@ -79,6 +80,9 @@ export type ClientPayload = {
   servicesNeeded?: string[];
   status?: ClientStatus;
   driveFolderUrl?: string;
+  createPortalUser?: boolean;
+  portalPassword?: string;
+  password?: string;
 };
 
 export type CampaignStatus = 'PLANNED' | 'ACTIVE' | 'PAUSED' | 'COMPLETED';
@@ -271,6 +275,93 @@ export type OrganizationFeature = {
   label: string;
   description: string;
   enabled: boolean;
+};
+
+export type WorkspaceChannel = {
+  id: string;
+  organizationId: string;
+  clientId: string | null;
+  name: string;
+  slug: string;
+  description: string | null;
+  type: 'GENERAL' | 'CLIENT' | 'PROJECT' | 'SYSTEM';
+  visibility: 'PUBLIC' | 'PRIVATE';
+  createdByUserId: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type WorkspaceMessage = {
+  id: string;
+  organizationId: string;
+  channelId: string;
+  authorUserId: string | null;
+  authorName: string | null;
+  authorRole: UserRole | null;
+  body: string;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type WorkspaceBoard = {
+  id: string;
+  organizationId: string;
+  clientId: string | null;
+  name: string;
+  slug: string;
+  description: string | null;
+  createdByUserId: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type WorkspaceTaskStatus = 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'DONE' | 'BLOCKED';
+export type WorkspaceTaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+
+export type WorkspaceTask = {
+  id: string;
+  organizationId: string;
+  boardId: string | null;
+  clientId: string | null;
+  title: string;
+  description: string | null;
+  status: WorkspaceTaskStatus;
+  priority: WorkspaceTaskPriority;
+  assigneeUserId: string | null;
+  reporterUserId: string | null;
+  dueAt: string | null;
+  position: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type WorkspaceTaskComment = {
+  id: string;
+  organizationId: string;
+  taskId: string;
+  authorUserId: string | null;
+  authorName: string | null;
+  authorRole: UserRole | null;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type WorkspacePage = {
+  id: string;
+  organizationId: string;
+  parentPageId: string | null;
+  clientId: string | null;
+  title: string;
+  slug: string;
+  icon: string | null;
+  content: { format: 'markdown'; text: string };
+  visibility: 'PUBLIC' | 'PRIVATE';
+  createdByUserId: string | null;
+  updatedByUserId: string | null;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type ApprovalComment = {

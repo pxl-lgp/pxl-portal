@@ -18,6 +18,7 @@ type OnboardingValues = {
   businessName: string;
   contactPerson: string;
   email: string;
+  password: string;
   industry: string;
   phone: string;
   facebook: string;
@@ -32,6 +33,7 @@ const emptyValues: OnboardingValues = {
   businessName: "",
   contactPerson: "",
   email: "",
+  password: "",
   industry: "",
   phone: "",
   facebook: "",
@@ -67,6 +69,7 @@ export function OnboardingForm() {
       businessName: values.businessName.trim(),
       contactPerson: values.contactPerson.trim(),
       email: values.email.trim().toLowerCase(),
+      password: values.password,
       industry: values.industry.trim() || undefined,
       phone: values.phone.trim() || undefined,
       socialLinks: Object.keys(socialLinks).length > 0 ? socialLinks : undefined,
@@ -157,6 +160,22 @@ export function OnboardingForm() {
                     value={values.email}
                   />
                 </div>
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="password">Portal password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  minLength={8}
+                  onChange={(event) => updateValue("password", event.target.value)}
+                  required
+                  placeholder="At least 8 characters"
+                  value={values.password}
+                />
+                <p className="text-xs text-muted-foreground">
+                  You&apos;ll use this email and password to access your client portal.
+                </p>
               </div>
 
               <div className="grid gap-5 sm:grid-cols-2">

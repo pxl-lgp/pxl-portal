@@ -11,13 +11,13 @@ const initialValues: RegisterPayload = {
   email: '',
   name: '',
   password: '',
-  role: 'CLIENT',
+  role: 'TEAM',
 };
 
 const initialInviteValues: InviteUserPayload = {
   email: '',
   name: '',
-  role: 'CLIENT',
+  role: 'TEAM',
 };
 
 type EditableUser = {
@@ -226,7 +226,9 @@ export default function AdminUsersPage() {
                           onChange={(event) => updateEditValue(user.id, 'role', event.target.value as UserRole)}
                           value={editableUser.role}
                         >
-                          <option value="CLIENT">Client</option>
+                          {editableUser.role === 'CLIENT' ? (
+                            <option value="CLIENT">Client</option>
+                          ) : null}
                           <option value="TEAM">Team</option>
                           <option value="ADMIN">Admin</option>
                         </select>
@@ -303,8 +305,11 @@ export default function AdminUsersPage() {
         <form className="panel grid content-start gap-5 p-5" onSubmit={submitInvite}>
           <div className="flex items-center gap-2">
             <UserCog className="h-5 w-5 text-[var(--brand)]" />
-            <h2 className="font-black">Invite user by email</h2>
-          </div>
+              <h2 className="font-black">Invite user by email</h2>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Client portal accounts are created from the Clients page so they are linked to a client profile.
+            </p>
 
           {inviteMutation.isSuccess ? (
             <div className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
@@ -354,7 +359,6 @@ export default function AdminUsersPage() {
                 onChange={(event) => updateInviteValue('role', event.target.value as UserRole)}
                 value={inviteValues.role}
               >
-                <option value="CLIENT">Client</option>
                 <option value="TEAM">Team</option>
                 <option value="ADMIN">Admin</option>
               </select>
@@ -372,6 +376,9 @@ export default function AdminUsersPage() {
             <UserCog className="h-5 w-5 text-[var(--brand)]" />
             <h2 className="font-black">Create user account</h2>
           </div>
+          <p className="text-sm text-muted-foreground">
+            Use Clients to create linked client portal accounts. This form is for team and admin accounts.
+          </p>
 
           {createMutation.isSuccess ? (
             <div className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
@@ -421,7 +428,6 @@ export default function AdminUsersPage() {
                 onChange={(event) => updateValue('role', event.target.value as UserRole)}
                 value={values.role}
               >
-                <option value="CLIENT">Client</option>
                 <option value="TEAM">Team</option>
                 <option value="ADMIN">Admin</option>
               </select>
@@ -441,12 +447,6 @@ export default function AdminUsersPage() {
               />
             </div>
           </div>
-
-          {values.role === 'CLIENT' ? (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-900">
-              Client login is linked by email. Use the exact same email saved on the client profile.
-            </div>
-          ) : null}
 
           <button className="button button-primary justify-center" disabled={createMutation.isPending} type="submit">
             <UserCog className="h-4 w-4" />

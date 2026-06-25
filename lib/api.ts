@@ -54,6 +54,14 @@ import {
   User,
   UpdateProfilePayload,
   UpdateUserPayload,
+  WorkspaceBoard,
+  WorkspaceChannel,
+  WorkspaceMessage,
+  WorkspacePage,
+  WorkspaceTask,
+  WorkspaceTaskComment,
+  WorkspaceTaskPriority,
+  WorkspaceTaskStatus,
 } from './types';
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
@@ -405,6 +413,90 @@ export async function getOrganizationFeatures(organizationId: string) {
 export async function updateOrganizationFeature(organizationId: string, featureKey: string, enabled: boolean) {
   const response = await api.patch(`/organizations/${organizationId}/features/${featureKey}`, { enabled });
 
+  return response.data;
+}
+
+export async function getWorkspaceChannels() {
+  const response = await api.get<WorkspaceChannel[]>('/workspace/channels');
+  return response.data;
+}
+
+export async function createWorkspaceChannel(payload: {
+  name: string;
+  description?: string;
+  type?: WorkspaceChannel['type'];
+  visibility?: WorkspaceChannel['visibility'];
+  clientId?: string;
+}) {
+  const response = await api.post<WorkspaceChannel>('/workspace/channels', payload);
+  return response.data;
+}
+
+export async function getWorkspaceMessages(channelId: string) {
+  const response = await api.get<WorkspaceMessage[]>(`/workspace/channels/${channelId}/messages`);
+  return response.data;
+}
+
+export async function createWorkspaceMessage(channelId: string, body: string) {
+  const response = await api.post<WorkspaceMessage>(`/workspace/channels/${channelId}/messages`, { body });
+  return response.data;
+}
+
+export async function getWorkspaceBoards() {
+  const response = await api.get<WorkspaceBoard[]>('/workspace/boards');
+  return response.data;
+}
+
+export async function createWorkspaceBoard(payload: { name: string; description?: string; clientId?: string }) {
+  const response = await api.post<WorkspaceBoard>('/workspace/boards', payload);
+  return response.data;
+}
+
+export async function getWorkspaceTasks() {
+  const response = await api.get<WorkspaceTask[]>('/workspace/tasks');
+  return response.data;
+}
+
+export async function createWorkspaceTask(payload: {
+  title: string;
+  description?: string;
+  boardId?: string;
+  clientId?: string;
+  status?: WorkspaceTaskStatus;
+  priority?: WorkspaceTaskPriority;
+  assigneeUserId?: string;
+}) {
+  const response = await api.post<WorkspaceTask>('/workspace/tasks', payload);
+  return response.data;
+}
+
+export async function updateWorkspaceTask(id: string, payload: Partial<Pick<WorkspaceTask, 'title' | 'description' | 'status' | 'priority' | 'assigneeUserId'>>) {
+  const response = await api.patch<WorkspaceTask>(`/workspace/tasks/${id}`, payload);
+  return response.data;
+}
+
+export async function getWorkspaceTaskComments(taskId: string) {
+  const response = await api.get<WorkspaceTaskComment[]>(`/workspace/tasks/${taskId}/comments`);
+  return response.data;
+}
+
+export async function createWorkspaceTaskComment(taskId: string, body: string) {
+  const response = await api.post<WorkspaceTaskComment>(`/workspace/tasks/${taskId}/comments`, { body });
+  return response.data;
+}
+
+export async function getWorkspacePages() {
+  const response = await api.get<WorkspacePage[]>('/workspace/pages');
+  return response.data;
+}
+
+export async function createWorkspacePage(payload: { title: string; text?: string; clientId?: string }) {
+  const response = await api.post<WorkspacePage>('/workspace/pages', payload);
+  return response.data;
+}
+
+export async function updateWorkspacePage(id: string, payload: { title?: string; text?: string }) {
+  const response = await api.patch<WorkspacePage>(`/workspace/pages/${id}`, payload);
   return response.data;
 }
 

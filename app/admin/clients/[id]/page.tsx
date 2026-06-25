@@ -59,12 +59,17 @@ export default function ClientDetailPage() {
             Updated {new Date(client.updatedAt).toLocaleString()}
           </p>
         </div>
-        {client.driveFolderUrl ? (
-          <a className="button button-secondary" href={client.driveFolderUrl} rel="noreferrer" target="_blank">
-            <ExternalLink className="h-4 w-4" />
-            Drive
-          </a>
-        ) : null}
+        <div className="flex flex-wrap gap-2">
+          <Link className="button button-secondary" href={`/admin/workspace?clientId=${client.id}`}>
+            Workspace
+          </Link>
+          {client.driveFolderUrl ? (
+            <a className="button button-secondary" href={client.driveFolderUrl} rel="noreferrer" target="_blank">
+              <ExternalLink className="h-4 w-4" />
+              Drive
+            </a>
+          ) : null}
+        </div>
       </div>
 
       {updateMutation.isError ? (
