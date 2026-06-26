@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircle,
   ArrowLeft,
@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { PxlLogo } from "@/components/site/pxl-logo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,8 +21,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { login as loginCopy } from "@/lib/content";
-import { login } from "@/lib/api";
-import { setAccessToken } from "@/lib/auth";
+import { getCurrentUser, login } from "@/lib/api";
+import { clearAccessToken, getAccessToken, setAccessToken } from "@/lib/auth";
 import { getApiErrorMessage } from "@/lib/errors";
 
 export function LoginForm() {
@@ -31,6 +31,13 @@ export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [hasStoredToken] = useState(() => Boolean(getAccessToken()));
+  const currentUserQuery = useQuery({
+    queryKey: ["auth", "me"],
+    queryFn: getCurrentUser,
+    enabled: hasStoredToken,
+    retry: false,
+  });
   const mutation = useMutation({
     mutationFn: () => login(email.trim().toLowerCase(), password),
     onSuccess: (data) => {
@@ -40,9 +47,32 @@ export function LoginForm() {
     },
   });
 
+  useEffect(() => {
+    if (currentUserQuery.data) {
+      router.replace(currentUserQuery.data.role === "CLIENT" ? "/client/dashboard" : "/admin/dashboard");
+    }
+  }, [currentUserQuery.data, router]);
+
+  useEffect(() => {
+    if (currentUserQuery.isError) {
+      clearAccessToken();
+    }
+  }, [currentUserQuery.isError]);
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     mutation.mutate();
+  }
+
+  if (hasStoredToken && (currentUserQuery.isLoading || currentUserQuery.data)) {
+    return (
+      <main className="grid min-h-dvh place-items-center">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="size-4 animate-spin text-primary" />
+          Checking your session...
+        </div>
+      </main>
+    );
   }
 
   return (
