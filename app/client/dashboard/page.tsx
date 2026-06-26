@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, Check, ExternalLink, FileCheck2, FolderOpen, RefreshCw, Send, X } from 'lucide-react';
+import { AlertCircle, Check, ExternalLink, FileCheck2, FolderOpen, RefreshCw, Send, Sparkles, X } from 'lucide-react';
 import { FormEvent, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -103,7 +103,12 @@ export default function ClientDashboardPage() {
           <div><h2 className="font-black">Latest report</h2><p className="mt-1 text-sm text-muted-foreground">{latestReport.title}</p></div>
           {latestReport.driveUrl ? <a className="button button-primary" href={latestReport.driveUrl} rel="noreferrer" target="_blank">Open latest report</a> : null}
         </section>
-      ) : null}
+      ) : (
+        <EmptyState
+          title="Reports are being prepared"
+          body="Your reports will appear here once the PXL team publishes your first reporting period."
+        />
+      )}
 
       <section className="panel grid gap-4 p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -133,7 +138,11 @@ export default function ClientDashboardPage() {
           <h2 className="font-black">Approvals</h2>
         </div>
         {overview.approvals.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No approvals yet.</p>
+          <EmptyState
+            compact
+            title="No approvals waiting"
+            body="When content is ready for review, it will appear here with approve and revision actions."
+          />
         ) : (
           <div className="grid gap-3">
             {overview.approvals.map((approval) => {
@@ -203,7 +212,7 @@ export default function ClientDashboardPage() {
         <div className="panel grid content-start gap-4 p-5" id="assets">
           <h2 className="font-black">Assets</h2>
           {overview.assets.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No assets yet.</p>
+            <EmptyState compact title="No assets yet" body="Approved creative files and shared assets will show up here." />
           ) : (
             <div className="grid gap-3">
               {overview.assets.map((asset) => (
@@ -226,7 +235,7 @@ export default function ClientDashboardPage() {
         <div className="panel grid content-start gap-4 p-5" id="reports">
           <h2 className="font-black">Reports</h2>
           {overview.reports.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No reports yet.</p>
+            <EmptyState compact title="No reports yet" body="Performance reports will appear here after they are sent." />
           ) : (
             <div className="grid gap-3">
               {overview.reports.map((report) => (
@@ -253,6 +262,22 @@ export default function ClientDashboardPage() {
         </div>
       </section>
     </>
+  );
+}
+
+function EmptyState({ compact, title, body }: { compact?: boolean; title: string; body: string }) {
+  return (
+    <div className={`rounded-xl border border-dashed bg-[var(--panel-muted)] ${compact ? 'p-4' : 'p-5'}`}>
+      <div className="flex items-start gap-3">
+        <div className="rounded-full bg-background p-2 text-[var(--brand)]">
+          <Sparkles className="h-4 w-4" />
+        </div>
+        <div>
+          <h3 className="font-black">{title}</h3>
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">{body}</p>
+        </div>
+      </div>
+    </div>
   );
 }
 

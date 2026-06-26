@@ -1,10 +1,17 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, ArrowLeft, ExternalLink } from 'lucide-react';
+import { AlertCircle, ArrowLeft, CheckCircle2, ExternalLink, KeyRound, UserPlus } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { getClient, updateClient } from '@/lib/api';
+import {
+  createClientPortalUser,
+  disableClientPortalUser,
+  getClient,
+  sendClientPortalPasswordReset,
+  unlinkClientPortalUser,
+  updateClient,
+} from '@/lib/api';
 import { ClientPayload } from '@/lib/types';
 import { ClientForm } from '@/components/portal/client-form';
 import { ClientOnboardingPanel } from '@/components/portal/client-onboarding-panel';
@@ -23,6 +30,30 @@ export default function ClientDetailPage() {
   });
   const updateMutation = useMutation({
     mutationFn: (payload: ClientPayload) => updateClient(params.id, payload),
+    onSuccess: async (client) => {
+      queryClient.setQueryData(['clients', params.id], client);
+      await queryClient.invalidateQueries({ queryKey: ['clients'] });
+    },
+  });
+  const createPortalUserMutation = useMutation({
+    mutationFn: () => createClientPortalUser(params.id),
+    onSuccess: async (client) => {
+      queryClient.setQueryData(['clients', params.id], client);
+      await queryClient.invalidateQueries({ queryKey: ['clients'] });
+    },
+  });
+  const resetPortalUserMutation = useMutation({
+    mutationFn: () => sendClientPortalPasswordReset(params.id),
+  });
+  const disablePortalUserMutation = useMutation({
+    mutationFn: () => disableClientPortalUser(params.id),
+    onSuccess: async (client) => {
+      queryClient.setQueryData(['clients', params.id], client);
+      await queryClient.invalidateQueries({ queryKey: ['clients'] });
+    },
+  });
+  const unlinkPortalUserMutation = useMutation({
+    mutationFn: () => unlinkClientPortalUser(params.id),
     onSuccess: async (client) => {
       queryClient.setQueryData(['clients', params.id], client);
       await queryClient.invalidateQueries({ queryKey: ['clients'] });
@@ -82,6 +113,94 @@ export default function ClientDetailPage() {
           Client updated.
         </div>
       ) : null}
+
+      <section className="panel grid gap-4 p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="font-black">Client portal access</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {client.userId
+                ? `Linked to ${client.portalUserEmail ?? 'a portal user'} (${client.portalUserStatus ?? 'unknown'}).`
+                : 'Create a linked client portal account before sending access.'}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {client.userId ? (
+              <>
+                <button
+                  className="button button-secondary"
+                  disabled={resetPortalUserMutation.isPending}
+                  onClick={() => resetPortalUserMutation.mutate()}
+                  type="button"
+                >
+                  <KeyRound className="h-4 w-4" />
+                  {resetPortalUserMutation.isPending ? 'Sending reset' : 'Send password reset'}
+                </button>
+                <button
+                  className="button button-secondary"
+                  disabled={disablePortalUserMutation.isPending || client.portalUserStatus === 'DISABLED'}
+                  onClick={() => disablePortalUserMutation.mutate()}
+                  type="button"
+                >
+                  {disablePortalUserMutation.isPending ? 'Disabling' : 'Disable access'}
+                </button>
+                <button
+                  className="button button-secondary text-red-700"
+                  disabled={unlinkPortalUserMutation.isPending}
+                  onClick={() => {
+                    if (window.confirm('Unlink this portal user from the client profile?')) {
+                      unlinkPortalUserMutation.mutate();
+                    }
+                  }}
+                  type="button"
+                >
+                  {unlinkPortalUserMutation.isPending ? 'Unlinking' : 'Unlink'}
+                </button>
+              </>
+            ) : (
+              <button
+                className="button button-primary"
+                disabled={createPortalUserMutation.isPending || !client.email}
+                onClick={() => createPortalUserMutation.mutate()}
+                type="button"
+              >
+                <UserPlus className="h-4 w-4" />
+                {createPortalUserMutation.isPending ? 'Sending invite' : 'Create portal account'}
+              </button>
+            )}
+          </div>
+        </div>
+        {!client.email ? (
+          <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            Add a client email before creating portal access.
+          </div>
+        ) : null}
+        {createPortalUserMutation.isError || resetPortalUserMutation.isError || disablePortalUserMutation.isError || unlinkPortalUserMutation.isError ? (
+          <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            {getApiErrorMessage(
+              createPortalUserMutation.error ??
+                resetPortalUserMutation.error ??
+                disablePortalUserMutation.error ??
+                unlinkPortalUserMutation.error,
+              'Unable to update client portal access.',
+            )}
+          </div>
+        ) : null}
+        {createPortalUserMutation.isSuccess || resetPortalUserMutation.isSuccess || disablePortalUserMutation.isSuccess || unlinkPortalUserMutation.isSuccess ? (
+          <div className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+            {createPortalUserMutation.isSuccess
+              ? 'Portal invite sent.'
+              : resetPortalUserMutation.isSuccess
+                ? 'Password reset email sent.'
+                : disablePortalUserMutation.isSuccess
+                  ? 'Portal access disabled.'
+                  : 'Portal user unlinked.'}
+          </div>
+        ) : null}
+      </section>
 
       <ClientOnboardingPanel client={client} />
       <ContentPillarsPanel clientId={client.id} />

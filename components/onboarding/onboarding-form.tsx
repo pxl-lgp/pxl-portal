@@ -18,7 +18,6 @@ type OnboardingValues = {
   businessName: string;
   contactPerson: string;
   email: string;
-  password: string;
   industry: string;
   phone: string;
   facebook: string;
@@ -33,7 +32,6 @@ const emptyValues: OnboardingValues = {
   businessName: "",
   contactPerson: "",
   email: "",
-  password: "",
   industry: "",
   phone: "",
   facebook: "",
@@ -69,7 +67,6 @@ export function OnboardingForm() {
       businessName: values.businessName.trim(),
       contactPerson: values.contactPerson.trim(),
       email: values.email.trim().toLowerCase(),
-      password: values.password,
       industry: values.industry.trim() || undefined,
       phone: values.phone.trim() || undefined,
       socialLinks: Object.keys(socialLinks).length > 0 ? socialLinks : undefined,
@@ -103,12 +100,17 @@ export function OnboardingForm() {
             </div>
             <h1 className="mt-4 text-3xl font-extrabold tracking-tight sm:text-4xl">You&apos;re all set!</h1>
             <p className="mx-auto mt-4 max-w-md text-muted-foreground">
-              Thanks, {values.contactPerson.trim() || "there"}. We&apos;ve received your details and the PXL team is
-              setting up your workspace. We&apos;ll be in touch shortly.
+              Thanks, {values.contactPerson.trim() || "there"}. We&apos;ve created your client profile and sent a
+              secure portal setup link to {values.email.trim().toLowerCase() || "your email"}.
             </p>
-            <Button asChild size="lg" className="mt-8 rounded-full px-8">
-              <Link href="/">Back to home</Link>
-            </Button>
+            <div className="mt-8 flex flex-wrap justify-center gap-3">
+              <Button asChild size="lg" className="rounded-full px-8">
+                <Link href="/login">Go to portal login</Link>
+              </Button>
+              <Button asChild size="lg" variant="outline" className="rounded-full px-8">
+                <Link href="/">Back to home</Link>
+              </Button>
+            </div>
           </div>
         ) : (
           <div className="animate-pop">
@@ -162,21 +164,9 @@ export function OnboardingForm() {
                 </div>
               </div>
 
-              <div className="grid gap-2">
-                <Label htmlFor="password">Portal password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  minLength={8}
-                  onChange={(event) => updateValue("password", event.target.value)}
-                  required
-                  placeholder="At least 8 characters"
-                  value={values.password}
-                />
-                <p className="text-xs text-muted-foreground">
-                  You&apos;ll use this email and password to access your client portal.
-                </p>
-              </div>
+              <p className="rounded-lg border border-border/70 bg-muted/30 p-3 text-xs leading-5 text-muted-foreground">
+                After submitting, we&apos;ll email you a secure link to set your client portal password.
+              </p>
 
               <div className="grid gap-5 sm:grid-cols-2">
                 <div className="grid gap-2">

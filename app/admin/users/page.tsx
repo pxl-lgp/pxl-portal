@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, CheckCircle2, Loader2, RefreshCw, Save, Trash2, UserCog } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Loader2, RefreshCw, Save, Trash2, UserCog, UserPlus, X } from 'lucide-react';
 import { FormEvent, useState } from 'react';
 import { deleteUser, getCurrentUser, getUsers, inviteUser, registerUser, sendUserPasswordReset, updateUser } from '@/lib/api';
 import { getApiErrorMessage } from '@/lib/errors';
@@ -28,11 +28,14 @@ type EditableUser = {
   status: UserStatus;
 };
 
+type UserModal = 'invite' | 'create' | null;
+
 export default function AdminUsersPage() {
   const queryClient = useQueryClient();
   const [values, setValues] = useState<RegisterPayload>(initialValues);
   const [inviteValues, setInviteValues] = useState<InviteUserPayload>(initialInviteValues);
   const [editValues, setEditValues] = useState<Record<string, EditableUser>>({});
+  const [activeModal, setActiveModal] = useState<UserModal>(null);
   const usersQuery = useQuery({ queryKey: ['users'], queryFn: getUsers });
   const currentUserQuery = useQuery({ queryKey: ['auth', 'me'], queryFn: getCurrentUser });
   const users = usersQuery.data ?? [];
@@ -47,6 +50,7 @@ export default function AdminUsersPage() {
       }),
     onSuccess: async () => {
       setValues(initialValues);
+      setActiveModal(null);
       await queryClient.invalidateQueries({ queryKey: ['users'] });
     },
   });
@@ -60,6 +64,7 @@ export default function AdminUsersPage() {
       }),
     onSuccess: async () => {
       setInviteValues(initialInviteValues);
+      setActiveModal(null);
       await queryClient.invalidateQueries({ queryKey: ['users'] });
     },
   });
@@ -141,321 +146,291 @@ export default function AdminUsersPage() {
 
   return (
     <>
-      <section>
-        <h1 className="text-2xl font-black">Users</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Create, edit, reset, and remove login accounts</p>
+      <section className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-black">Users</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Create, edit, reset, and remove login accounts</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button className="button button-secondary" onClick={() => setActiveModal('invite')} type="button">
+            <UserPlus className="h-4 w-4" />
+            Invite user
+          </button>
+          <button className="button button-primary" onClick={() => setActiveModal('create')} type="button">
+            <UserCog className="h-4 w-4" />
+            Create user
+          </button>
+          <button className="button button-secondary" onClick={() => usersQuery.refetch()} type="button">
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </button>
+        </div>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[1fr_420px]">
-        <div className="panel grid gap-5 p-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <UserCog className="h-5 w-5 text-[var(--brand)]" />
-              <h2 className="font-black">Manage accounts</h2>
-            </div>
-            <button className="button button-secondary" onClick={() => usersQuery.refetch()} type="button">
-              <RefreshCw className="h-4 w-4" />
-              Refresh
-            </button>
+      <section className="panel grid gap-5 p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <UserCog className="h-5 w-5 text-[var(--brand)]" />
+            <h2 className="font-black">Manage accounts</h2>
           </div>
+          <p className="text-sm text-muted-foreground">{users.length} users</p>
+        </div>
 
-          {managementError ? (
-            <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              {getApiErrorMessage(managementError, 'Unable to manage user accounts.')}
-            </div>
-          ) : null}
+        {managementError ? <ErrorMessage message={getApiErrorMessage(managementError, 'Unable to manage user accounts.')} /> : null}
+        {updateMutation.isSuccess ? <SuccessMessage message="User account updated." /> : null}
+        {deleteMutation.isSuccess || resetMutation.isSuccess ? (
+          <SuccessMessage message={resetMutation.isSuccess ? 'Password reset email sent.' : 'User account deleted.'} />
+        ) : null}
 
-          {updateMutation.isSuccess ? (
-            <div className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
-              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-              User account updated.
-            </div>
-          ) : null}
+        {usersQuery.isLoading ? (
+          <div className="grid place-items-center rounded-lg border border-dashed p-8 text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin" />
+          </div>
+        ) : users.length === 0 ? (
+          <div className="grid min-h-40 place-items-center rounded-lg border border-dashed p-8 text-sm text-muted-foreground">
+            No users yet.
+          </div>
+        ) : (
+          <div className="overflow-x-auto rounded-xl border border-[var(--border)]">
+            <table className="w-full min-w-[1100px] border-collapse text-left text-sm">
+              <thead className="bg-[var(--panel-muted)] text-xs uppercase text-muted-foreground">
+                <tr>
+                  <th className="px-4 py-3">Name</th>
+                  <th className="px-4 py-3">Email</th>
+                  <th className="px-4 py-3">Role</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">New password</th>
+                  <th className="px-4 py-3">Created</th>
+                  <th className="px-4 py-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((user) => {
+                  const editableUser = editValues[user.id] ?? toEditableUser(user);
+                  const isCurrentUser = user.id === currentUser?.id;
+                  const isSaving = updateMutation.isPending && updateMutation.variables?.id === user.id;
+                  const isDeleting = deleteMutation.isPending && deleteMutation.variables === user.id;
 
-          {deleteMutation.isSuccess || resetMutation.isSuccess ? (
-            <div className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
-              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-              {resetMutation.isSuccess ? 'Password reset email sent.' : 'User account deleted.'}
-            </div>
-          ) : null}
-
-          {usersQuery.isLoading ? (
-            <div className="grid place-items-center rounded-lg border border-dashed p-8 text-muted-foreground">
-              <Loader2 className="h-5 w-5 animate-spin" />
-            </div>
-          ) : (
-            <div className="grid gap-3">
-              {users.map((user) => {
-                const editableUser = editValues[user.id] ?? toEditableUser(user);
-                const isCurrentUser = user.id === currentUser?.id;
-                const isSaving = updateMutation.isPending && updateMutation.variables?.id === user.id;
-                const isDeleting = deleteMutation.isPending && deleteMutation.variables === user.id;
-
-                return (
-                  <article className="rounded-xl border bg-background p-4" key={user.id}>
-                    <div className="grid gap-3 lg:grid-cols-[1fr_1fr_140px_140px_1fr_auto] lg:items-end">
-                      <div className="field">
-                        <label htmlFor={`name-${user.id}`}>Name</label>
+                  return (
+                    <tr className="border-t border-[var(--border)] align-top" key={user.id}>
+                      <td className="px-4 py-3">
                         <input
-                          className="input"
-                          id={`name-${user.id}`}
+                          className="input min-w-40"
                           minLength={2}
                           onChange={(event) => updateEditValue(user.id, 'name', event.target.value)}
                           value={editableUser.name}
                         />
-                      </div>
-
-                      <div className="field">
-                        <label htmlFor={`email-${user.id}`}>Email</label>
+                        {isCurrentUser ? <div className="mt-1 text-xs text-muted-foreground">Current account</div> : null}
+                      </td>
+                      <td className="px-4 py-3">
                         <input
-                          className="input"
-                          id={`email-${user.id}`}
+                          className="input min-w-52"
                           onChange={(event) => updateEditValue(user.id, 'email', event.target.value)}
                           type="email"
                           value={editableUser.email}
                         />
-                      </div>
-
-                      <div className="field">
-                        <label htmlFor={`role-${user.id}`}>Role</label>
+                      </td>
+                      <td className="px-4 py-3">
                         <select
-                          className="select"
+                          className="select min-w-32"
                           disabled={isCurrentUser}
-                          id={`role-${user.id}`}
                           onChange={(event) => updateEditValue(user.id, 'role', event.target.value as UserRole)}
                           value={editableUser.role}
                         >
-                          {editableUser.role === 'CLIENT' ? (
-                            <option value="CLIENT">Client</option>
-                          ) : null}
+                          {editableUser.role === 'CLIENT' ? <option value="CLIENT">Client</option> : null}
                           <option value="TEAM">Team</option>
                           <option value="ADMIN">Admin</option>
                         </select>
-                      </div>
-
-                      <div className="field">
-                        <label htmlFor={`status-${user.id}`}>Status</label>
+                      </td>
+                      <td className="px-4 py-3">
                         <select
-                          className="select"
+                          className="select min-w-32"
                           disabled={isCurrentUser}
-                          id={`status-${user.id}`}
                           onChange={(event) => updateEditValue(user.id, 'status', event.target.value as UserStatus)}
                           value={editableUser.status}
                         >
                           <option value="ACTIVE">Active</option>
                           <option value="DISABLED">Disabled</option>
                         </select>
-                      </div>
-
-                      <div className="field">
-                        <label htmlFor={`password-${user.id}`}>New password</label>
+                      </td>
+                      <td className="px-4 py-3">
                         <input
                           autoComplete="new-password"
-                          className="input"
-                          id={`password-${user.id}`}
+                          className="input min-w-40"
                           minLength={8}
                           onChange={(event) => updateEditValue(user.id, 'password', event.target.value)}
                           placeholder="Leave unchanged"
                           type="password"
                           value={editableUser.password}
                         />
-                      </div>
-
-                      <div className="flex gap-2 lg:justify-end">
-                        <button
-                          className="button button-primary"
-                          disabled={isSaving || isDeleting}
-                          onClick={() => saveUser(user)}
-                          type="button"
-                        >
-                          <Save className="h-4 w-4" />
-                          {isSaving ? 'Saving' : 'Save'}
-                        </button>
-                        <button
-                          className="button button-secondary text-red-700"
-                          disabled={isCurrentUser || isSaving || isDeleting}
-                          onClick={() => removeUser(user)}
-                          type="button"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          {isDeleting ? 'Deleting' : 'Delete'}
-                        </button>
-                        <button
-                          className="button button-secondary"
-                          disabled={resetMutation.isPending && resetMutation.variables === user.id}
-                          onClick={() => resetMutation.mutate(user.id)}
-                          type="button"
-                        >
-                          Reset
-                        </button>
-                      </div>
-                    </div>
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      Created {formatDate(user.createdAt)} {isCurrentUser ? '· Current account' : ''}
-                    </p>
-                  </article>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        <div className="grid content-start gap-6">
-        <form className="panel grid content-start gap-5 p-5" onSubmit={submitInvite}>
-          <div className="flex items-center gap-2">
-            <UserCog className="h-5 w-5 text-[var(--brand)]" />
-              <h2 className="font-black">Invite user by email</h2>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Client portal accounts are created from the Clients page so they are linked to a client profile.
-            </p>
-
-          {inviteMutation.isSuccess ? (
-            <div className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
-              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-              Invite email sent.
-            </div>
-          ) : null}
-
-          {inviteMutation.isError ? (
-            <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              {getApiErrorMessage(inviteMutation.error, 'Unable to invite user.')}
-            </div>
-          ) : null}
-
-          <div className="grid gap-4">
-            <div className="field">
-              <label htmlFor="invite-name">Name</label>
-              <input
-                className="input"
-                id="invite-name"
-                minLength={2}
-                onChange={(event) => updateInviteValue('name', event.target.value)}
-                required
-                value={inviteValues.name}
-              />
-            </div>
-
-            <div className="field">
-              <label htmlFor="invite-email">Email</label>
-              <input
-                autoComplete="email"
-                className="input"
-                id="invite-email"
-                onChange={(event) => updateInviteValue('email', event.target.value)}
-                required
-                type="email"
-                value={inviteValues.email}
-              />
-            </div>
-
-            <div className="field">
-              <label htmlFor="invite-role">Role</label>
-              <select
-                className="select"
-                id="invite-role"
-                onChange={(event) => updateInviteValue('role', event.target.value as UserRole)}
-                value={inviteValues.role}
-              >
-                <option value="TEAM">Team</option>
-                <option value="ADMIN">Admin</option>
-              </select>
-            </div>
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">{formatDate(user.createdAt)}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex justify-end gap-2">
+                          <button className="button button-primary" disabled={isSaving || isDeleting} onClick={() => saveUser(user)} type="button">
+                            <Save className="h-4 w-4" />
+                            {isSaving ? 'Saving' : 'Save'}
+                          </button>
+                          <button
+                            className="button button-secondary"
+                            disabled={resetMutation.isPending && resetMutation.variables === user.id}
+                            onClick={() => resetMutation.mutate(user.id)}
+                            type="button"
+                          >
+                            Reset
+                          </button>
+                          <button
+                            className="button button-secondary text-red-700"
+                            disabled={isCurrentUser || isSaving || isDeleting}
+                            onClick={() => removeUser(user)}
+                            type="button"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            {isDeleting ? 'Deleting' : 'Delete'}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
+        )}
+      </section>
 
+      <UserFormModal onClose={() => setActiveModal(null)} open={activeModal === 'invite'} title="Invite user by email">
+        <form className="grid gap-5" onSubmit={submitInvite}>
+          <p className="text-sm text-muted-foreground">
+            Client portal accounts are created from the Clients page so they are linked to a client profile.
+          </p>
+          {inviteMutation.isError ? <ErrorMessage message={getApiErrorMessage(inviteMutation.error, 'Unable to invite user.')} /> : null}
+          <UserFields
+            email={inviteValues.email}
+            name={inviteValues.name}
+            role={inviteValues.role}
+            setEmail={(value) => updateInviteValue('email', value)}
+            setName={(value) => updateInviteValue('name', value)}
+            setRole={(value) => updateInviteValue('role', value)}
+          />
           <button className="button button-primary justify-center" disabled={inviteMutation.isPending} type="submit">
-            <UserCog className="h-4 w-4" />
+            <UserPlus className="h-4 w-4" />
             {inviteMutation.isPending ? 'Sending invite' : 'Send invite'}
           </button>
         </form>
+      </UserFormModal>
 
-        <form className="panel grid content-start gap-5 p-5" onSubmit={submit}>
-          <div className="flex items-center gap-2">
-            <UserCog className="h-5 w-5 text-[var(--brand)]" />
-            <h2 className="font-black">Create user account</h2>
-          </div>
+      <UserFormModal onClose={() => setActiveModal(null)} open={activeModal === 'create'} title="Create user account">
+        <form className="grid gap-5" onSubmit={submit}>
           <p className="text-sm text-muted-foreground">
             Use Clients to create linked client portal accounts. This form is for team and admin accounts.
           </p>
-
-          {createMutation.isSuccess ? (
-            <div className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
-              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-              User account created.
-            </div>
-          ) : null}
-
-          {createMutation.isError ? (
-            <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              {getApiErrorMessage(createMutation.error, 'Unable to create user account.')}
-            </div>
-          ) : null}
-
-          <div className="grid gap-4">
-            <div className="field">
-              <label htmlFor="name">Name</label>
-              <input
-                className="input"
-                id="name"
-                minLength={2}
-                onChange={(event) => updateValue('name', event.target.value)}
-                required
-                value={values.name}
-              />
-            </div>
-
-            <div className="field">
-              <label htmlFor="email">Email</label>
-              <input
-                autoComplete="email"
-                className="input"
-                id="email"
-                onChange={(event) => updateValue('email', event.target.value)}
-                required
-                type="email"
-                value={values.email}
-              />
-            </div>
-
-            <div className="field">
-              <label htmlFor="role">Role</label>
-              <select
-                className="select"
-                id="role"
-                onChange={(event) => updateValue('role', event.target.value as UserRole)}
-                value={values.role}
-              >
-                <option value="TEAM">Team</option>
-                <option value="ADMIN">Admin</option>
-              </select>
-            </div>
-
-            <div className="field">
-              <label htmlFor="password">Temporary password</label>
-              <input
-                autoComplete="new-password"
-                className="input"
-                id="password"
-                minLength={8}
-                onChange={(event) => updateValue('password', event.target.value)}
-                required
-                type="password"
-                value={values.password}
-              />
-            </div>
+          {createMutation.isError ? <ErrorMessage message={getApiErrorMessage(createMutation.error, 'Unable to create user account.')} /> : null}
+          <UserFields
+            email={values.email}
+            name={values.name}
+            role={values.role}
+            setEmail={(value) => updateValue('email', value)}
+            setName={(value) => updateValue('name', value)}
+            setRole={(value) => updateValue('role', value)}
+          />
+          <div className="field">
+            <label htmlFor="password">Temporary password</label>
+            <input
+              autoComplete="new-password"
+              className="input"
+              id="password"
+              minLength={8}
+              onChange={(event) => updateValue('password', event.target.value)}
+              required
+              type="password"
+              value={values.password}
+            />
           </div>
-
           <button className="button button-primary justify-center" disabled={createMutation.isPending} type="submit">
             <UserCog className="h-4 w-4" />
             {createMutation.isPending ? 'Creating account' : 'Create account'}
           </button>
         </form>
-        </div>
-      </section>
+      </UserFormModal>
     </>
+  );
+}
+
+function UserFields({
+  email,
+  name,
+  role,
+  setEmail,
+  setName,
+  setRole,
+}: {
+  email: string;
+  name: string;
+  role: UserRole;
+  setEmail: (value: string) => void;
+  setName: (value: string) => void;
+  setRole: (value: UserRole) => void;
+}) {
+  return (
+    <div className="grid gap-4">
+      <div className="field">
+        <label htmlFor="modal-name">Name</label>
+        <input className="input" id="modal-name" minLength={2} onChange={(event) => setName(event.target.value)} required value={name} />
+      </div>
+      <div className="field">
+        <label htmlFor="modal-email">Email</label>
+        <input autoComplete="email" className="input" id="modal-email" onChange={(event) => setEmail(event.target.value)} required type="email" value={email} />
+      </div>
+      <div className="field">
+        <label htmlFor="modal-role">Role</label>
+        <select className="select" id="modal-role" onChange={(event) => setRole(event.target.value as UserRole)} value={role}>
+          <option value="TEAM">Team</option>
+          <option value="ADMIN">Admin</option>
+        </select>
+      </div>
+    </div>
+  );
+}
+
+function UserFormModal({ children, onClose, open, title }: { children: React.ReactNode; onClose: () => void; open: boolean; title: string }) {
+  if (!open) {
+    return null;
+  }
+
+  return (
+    <div aria-modal="true" className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4 backdrop-blur-sm" role="dialog">
+      <div className="w-full max-w-lg rounded-2xl border border-[var(--border)] bg-[var(--panel)] p-5 shadow-2xl">
+        <div className="mb-5 flex items-start justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <UserCog className="h-5 w-5 text-[var(--brand)]" />
+            <h2 className="font-black">{title}</h2>
+          </div>
+          <button aria-label="Close modal" className="button button-secondary p-2" onClick={onClose} type="button">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function ErrorMessage({ message }: { message: string }) {
+  return (
+    <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+      {message}
+    </div>
+  );
+}
+
+function SuccessMessage({ message }: { message: string }) {
+  return (
+    <div className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+      {message}
+    </div>
   );
 }
 

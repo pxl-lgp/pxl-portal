@@ -172,6 +172,28 @@ export async function updateClient(id: string, payload: Partial<ClientPayload>) 
   return response.data;
 }
 
+export async function createClientPortalUser(id: string) {
+  const response = await api.post<Client>(`/clients/${id}/portal-user`);
+
+  return response.data;
+}
+
+export async function sendClientPortalPasswordReset(id: string) {
+  await api.post(`/clients/${id}/portal-user/password-reset`);
+}
+
+export async function disableClientPortalUser(id: string) {
+  const response = await api.post<Client>(`/clients/${id}/portal-user/disable`);
+
+  return response.data;
+}
+
+export async function unlinkClientPortalUser(id: string) {
+  const response = await api.delete<Client>(`/clients/${id}/portal-user`);
+
+  return response.data;
+}
+
 export type CampaignFilters = {
   clientId?: string;
   status?: string;

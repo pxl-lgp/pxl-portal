@@ -23,6 +23,7 @@ import {
   UserCog,
   UserPlus,
   Bell,
+  ChevronDown,
   ShieldCheck,
   Search,
   SlidersHorizontal,
@@ -30,6 +31,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
 import { PxlLogo } from "@/components/site/pxl-logo";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -46,6 +48,7 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
+  SidebarGroupAction,
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarHeader,
@@ -151,6 +154,7 @@ export function PortalShell({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const userQuery = useQuery({
     queryKey: ["auth", "me"],
     queryFn: getCurrentUser,
@@ -177,6 +181,10 @@ export function PortalShell({
   function logout() {
     clearAccessToken();
     router.replace("/login");
+  }
+
+  function toggleGroup(label: string) {
+    setCollapsedGroups((current) => ({ ...current, [label]: !current[label] }));
   }
 
   return (
@@ -210,30 +218,53 @@ export function PortalShell({
           </SidebarMenu>
         </SidebarHeader>
         <SidebarContent>
-          {groups.map((group) => (
-            <SidebarGroup key={group.label}>
-              <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {group.items.map((item) => {
-                    const Icon = item.icon;
-                    const isActive = matchesPath(item.href);
+          {groups.map((group) => {
+            const isCollapsed = collapsedGroups[group.label] ?? false;
 
-                    return (
-                      <SidebarMenuItem key={item.href}>
-                        <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
-                          <Link href={item.href}>
-                            <Icon />
-                            <span>{item.label}</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    );
-                  })}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          ))}
+            return (
+              <SidebarGroup key={group.label}>
+                <SidebarGroupLabel asChild>
+                  <button
+                    aria-expanded={!isCollapsed}
+                    className="w-full pr-8 text-left text-sm font-bold text-sidebar-foreground/80 hover:text-sidebar-foreground"
+                    onClick={() => toggleGroup(group.label)}
+                    type="button"
+                  >
+                    {group.label}
+                  </button>
+                </SidebarGroupLabel>
+                <SidebarGroupAction
+                  aria-expanded={!isCollapsed}
+                  aria-label={`${isCollapsed ? "Expand" : "Collapse"} ${group.label}`}
+                  onClick={() => toggleGroup(group.label)}
+                  type="button"
+                >
+                  <ChevronDown className={isCollapsed ? "-rotate-90 transition-transform" : "transition-transform"} />
+                </SidebarGroupAction>
+                {!isCollapsed ? (
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      {group.items.map((item) => {
+                        const Icon = item.icon;
+                        const isActive = matchesPath(item.href);
+
+                        return (
+                          <SidebarMenuItem key={item.href}>
+                            <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
+                              <Link href={item.href}>
+                                <Icon />
+                                <span>{item.label}</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        );
+                      })}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                ) : null}
+              </SidebarGroup>
+            );
+          })}
         </SidebarContent>
         <SidebarFooter className="border-t border-sidebar-border">
           <SidebarMenu>

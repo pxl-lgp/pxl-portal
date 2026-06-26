@@ -53,6 +53,8 @@ export type ClientStatus = 'LEAD' | 'ONBOARDING' | 'ACTIVE' | 'PAUSED' | 'ARCHIV
 export type Client = {
   id: string;
   userId: string | null;
+  portalUserEmail: string | null;
+  portalUserStatus: UserStatus | null;
   businessName: string;
   industry: string | null;
   contactPerson: string | null;
@@ -82,7 +84,6 @@ export type ClientPayload = {
   driveFolderUrl?: string;
   createPortalUser?: boolean;
   portalPassword?: string;
-  password?: string;
 };
 
 export type CampaignStatus = 'PLANNED' | 'ACTIVE' | 'PAUSED' | 'COMPLETED';
