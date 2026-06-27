@@ -3,9 +3,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { getCurrentUser } from '@/lib/api';
-import { clearAccessToken, getAccessToken } from '@/lib/auth';
+import { AUTH_TOKEN_CHANGED_EVENT, clearAccessToken, getAccessToken } from '@/lib/auth';
 import { UserRole } from '@/lib/types';
 
 export function AuthGate({
@@ -18,12 +18,27 @@ export function AuthGate({
   redirectTo?: string;
 }) {
   const router = useRouter();
-  const hasToken = Boolean(getAccessToken());
+  const [hasToken, setHasToken] = useState(() => Boolean(getAccessToken()));
   const query = useQuery({
     queryKey: ['auth', 'me'],
     queryFn: getCurrentUser,
     enabled: hasToken,
+    retry: false,
   });
+
+  useEffect(() => {
+    function syncToken() {
+      setHasToken(Boolean(getAccessToken()));
+    }
+
+    window.addEventListener('storage', syncToken);
+    window.addEventListener(AUTH_TOKEN_CHANGED_EVENT, syncToken);
+
+    return () => {
+      window.removeEventListener('storage', syncToken);
+      window.removeEventListener(AUTH_TOKEN_CHANGED_EVENT, syncToken);
+    };
+  }, []);
 
   useEffect(() => {
     if (!hasToken) {

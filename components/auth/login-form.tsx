@@ -22,7 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { login as loginCopy } from "@/lib/content";
 import { getCurrentUser, login } from "@/lib/api";
-import { clearAccessToken, getAccessToken, setAccessToken } from "@/lib/auth";
+import { AUTH_TOKEN_CHANGED_EVENT, clearAccessToken, getAccessToken, setAccessToken } from "@/lib/auth";
 import { getApiErrorMessage } from "@/lib/errors";
 
 export function LoginForm() {
@@ -31,7 +31,7 @@ export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [hasStoredToken] = useState(() => Boolean(getAccessToken()));
+  const [hasStoredToken, setHasStoredToken] = useState(() => Boolean(getAccessToken()));
   const currentUserQuery = useQuery({
     queryKey: ["auth", "me"],
     queryFn: getCurrentUser,
@@ -46,6 +46,20 @@ export function LoginForm() {
       router.replace(data.user.role === "CLIENT" ? "/client/dashboard" : "/admin/dashboard");
     },
   });
+
+  useEffect(() => {
+    function syncStoredToken() {
+      setHasStoredToken(Boolean(getAccessToken()));
+    }
+
+    window.addEventListener("storage", syncStoredToken);
+    window.addEventListener(AUTH_TOKEN_CHANGED_EVENT, syncStoredToken);
+
+    return () => {
+      window.removeEventListener("storage", syncStoredToken);
+      window.removeEventListener(AUTH_TOKEN_CHANGED_EVENT, syncStoredToken);
+    };
+  }, []);
 
   useEffect(() => {
     if (currentUserQuery.data) {
