@@ -10,6 +10,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import {
   createWorkspaceBoard,
@@ -130,18 +138,31 @@ function ChannelsTab({ initialClientId }: { initialClientId?: string }) {
             </Button>
           </form>
         </div>
-        <div className="grid gap-1 p-3">
-          {channels.map((channel) => (
-            <button
-              className={`rounded-lg px-3 py-2 text-left text-sm ${activeChannelId === channel.id ? 'bg-primary/10 font-semibold text-primary' : 'hover:bg-muted'}`}
-              key={channel.id}
-              onClick={() => setSelectedId(channel.id)}
-              type="button"
-            >
-              <span className="block"># {channel.name}</span>
-              {channel.clientId ? <span className="block text-xs text-muted-foreground">{clientNameById.get(channel.clientId) ?? 'Linked client'}</span> : null}
-            </button>
-          ))}
+        <div>
+          {channels.length > 0 ? (
+            <Table>
+              <TableHeader className="bg-[var(--panel-muted)] text-xs uppercase text-muted-foreground">
+                <TableRow>
+                  <TableHead className="px-3 py-2">Channel</TableHead>
+                  <TableHead className="px-3 py-2">Client</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {channels.map((channel) => (
+                  <TableRow
+                    className={`cursor-pointer ${activeChannelId === channel.id ? 'bg-primary/10 text-primary' : ''}`}
+                    key={channel.id}
+                    onClick={() => setSelectedId(channel.id)}
+                  >
+                    <TableCell className="px-3 py-2 font-semibold"># {channel.name}</TableCell>
+                    <TableCell className="px-3 py-2 text-xs text-muted-foreground">
+                      {channel.clientId ? clientNameById.get(channel.clientId) ?? 'Linked client' : 'None'}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : null}
           {channelsQuery.isLoading ? <p className="p-3 text-sm text-muted-foreground">Loading channels...</p> : null}
         </div>
       </aside>
@@ -239,30 +260,47 @@ function TasksTab({ initialClientId }: { initialClientId?: string }) {
         </form>
       </div>
       <div className="grid gap-4 xl:grid-cols-[1fr_380px]">
-        <div className="grid gap-4 lg:grid-cols-5">
-          {taskStatuses.map((status) => (
-            <div className="panel min-h-80 p-3" key={status}>
-              <h3 className="mb-3 text-sm font-black">{status.replaceAll('_', ' ')}</h3>
-              <div className="grid gap-2">
-                {tasks.filter((task) => task.status === status).map((task) => (
-                  <article
-                    className={`rounded-xl border bg-background p-3 text-left ${selectedTaskId === task.id ? 'border-primary' : ''}`}
-                    key={task.id}
-                  >
-                    <button className="w-full text-left" onClick={() => setSelectedTaskId(task.id)} type="button">
-                      <p className="font-semibold">{task.title}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">{task.priority}</p>
-                      {task.clientId ? <p className="mt-1 text-xs text-muted-foreground">{clientNameById.get(task.clientId) ?? 'Linked client'}</p> : null}
-                    </button>
+        <div className="panel overflow-hidden">
+          <Table className="min-w-[900px]">
+            <TableHeader className="bg-[var(--panel-muted)] text-xs uppercase text-muted-foreground">
+              <TableRow>
+                <TableHead className="px-4 py-3">Task</TableHead>
+                <TableHead className="px-4 py-3">Client</TableHead>
+                <TableHead className="px-4 py-3">Priority</TableHead>
+                <TableHead className="px-4 py-3">Status</TableHead>
+                <TableHead className="px-4 py-3">Updated</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {tasks.map((task) => (
+                <TableRow
+                  className={`cursor-pointer ${selectedTaskId === task.id ? 'bg-primary/10' : ''}`}
+                  key={task.id}
+                  onClick={() => setSelectedTaskId(task.id)}
+                >
+                  <TableCell className="px-4 py-3 font-semibold">{task.title}</TableCell>
+                  <TableCell className="px-4 py-3 text-muted-foreground">
+                    {task.clientId ? clientNameById.get(task.clientId) ?? 'Linked client' : 'None'}
+                  </TableCell>
+                  <TableCell className="px-4 py-3">
+                    <span className="badge bg-[var(--panel-muted)] text-foreground">{task.priority}</span>
+                  </TableCell>
+                  <TableCell className="px-4 py-3" onClick={(event) => event.stopPropagation()}>
                     <Select value={task.status} onValueChange={(value) => updateTaskMutation.mutate({ id: task.id, status: value as WorkspaceTaskStatus })}>
-                      <SelectTrigger className="mt-3 h-8"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="h-8 min-w-36"><SelectValue /></SelectTrigger>
                       <SelectContent>{taskStatuses.map((item) => <SelectItem key={item} value={item}>{item.replaceAll('_', ' ')}</SelectItem>)}</SelectContent>
                     </Select>
-                  </article>
-                ))}
-              </div>
-            </div>
-          ))}
+                  </TableCell>
+                  <TableCell className="px-4 py-3 text-muted-foreground">{new Date(task.updatedAt).toLocaleDateString()}</TableCell>
+                </TableRow>
+              ))}
+              {tasks.length === 0 ? (
+                <TableRow>
+                  <TableCell className="px-4 py-8 text-center text-muted-foreground" colSpan={5}>No tasks yet.</TableCell>
+                </TableRow>
+              ) : null}
+            </TableBody>
+          </Table>
         </div>
         <TaskDetailPanel task={selectedTask} />
       </div>
@@ -390,21 +428,37 @@ function DocsTab({ initialClientId }: { initialClientId?: string }) {
             <Button disabled={!title.trim()} type="submit"><Plus className="h-4 w-4" /> Create doc</Button>
           </form>
         </div>
-        <div className="grid gap-1 p-3">
-          {pages.map((page) => (
-            <button
-              className={`rounded-lg px-3 py-2 text-left text-sm ${activePage?.id === page.id ? 'bg-primary/10 font-semibold text-primary' : 'hover:bg-muted'}`}
-              key={page.id}
-              onClick={() => {
-                setSelectedId(page.id);
-                setDraft(page.content.text);
-              }}
-              type="button"
-            >
-              <span className="block">{page.title}</span>
-              {page.clientId ? <span className="block text-xs text-muted-foreground">{clientNameById.get(page.clientId) ?? 'Linked client'}</span> : null}
-            </button>
-          ))}
+        <div>
+          <Table>
+            <TableHeader className="bg-[var(--panel-muted)] text-xs uppercase text-muted-foreground">
+              <TableRow>
+                <TableHead className="px-3 py-2">Doc</TableHead>
+                <TableHead className="px-3 py-2">Client</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {pages.map((page) => (
+                <TableRow
+                  className={`cursor-pointer ${activePage?.id === page.id ? 'bg-primary/10 text-primary' : ''}`}
+                  key={page.id}
+                  onClick={() => {
+                    setSelectedId(page.id);
+                    setDraft(page.content.text);
+                  }}
+                >
+                  <TableCell className="px-3 py-2 font-semibold">{page.title}</TableCell>
+                  <TableCell className="px-3 py-2 text-xs text-muted-foreground">
+                    {page.clientId ? clientNameById.get(page.clientId) ?? 'Linked client' : 'None'}
+                  </TableCell>
+                </TableRow>
+              ))}
+              {pages.length === 0 ? (
+                <TableRow>
+                  <TableCell className="px-3 py-8 text-center text-muted-foreground" colSpan={2}>No docs yet.</TableCell>
+                </TableRow>
+              ) : null}
+            </TableBody>
+          </Table>
         </div>
       </aside>
       <main className="panel grid gap-4 p-4">

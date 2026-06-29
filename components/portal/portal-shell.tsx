@@ -33,6 +33,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { PxlLogo } from "@/components/site/pxl-logo";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -322,10 +323,13 @@ export function PortalShell({
               </p>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={logout}>
-            <LogOut />
-            <span className="hidden sm:inline">Sign out</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Button variant="outline" size="sm" onClick={logout}>
+              <LogOut />
+              <span className="hidden sm:inline">Sign out</span>
+            </Button>
+          </div>
         </header>
         <div className="flex flex-1 flex-col">
           <main className="mx-auto grid w-full max-w-[1500px] gap-6 p-4 lg:p-6">

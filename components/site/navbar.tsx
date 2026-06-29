@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PxlLogo } from "@/components/site/pxl-logo";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
 
 const links = [
@@ -90,6 +91,7 @@ export function Navbar() {
         </div>
 
         <div className="flex items-center gap-2">
+          <ThemeToggle className="hidden sm:inline-flex" />
           <Button
             asChild
             variant="ghost"
@@ -135,6 +137,7 @@ export function Navbar() {
             >
               Client Login
             </Link>
+            <ThemeToggle className="mt-2 justify-self-start" showLabel />
             <Button
               asChild
               className="mt-2 rounded-full bg-white text-[#0f0f0f] hover:bg-white/85"

@@ -121,31 +121,29 @@
 }
 
 :root {
-  /* Dark palette matching the rendered Jerwhyne Framer portfolio:
-     near-black canvas, white display type, light-cyan accent */
-  --background: #121213;
-  --foreground: #ffffff;
-  --card: #1c1c1e;
-  --card-foreground: #ffffff;
-  --popover: #1c1c1e;
-  --popover-foreground: #ffffff;
+  --background: #f7f9fb;
+  --foreground: #111214;
+  --card: #ffffff;
+  --card-foreground: #111214;
+  --popover: #ffffff;
+  --popover-foreground: #111214;
   --primary: #5ddafc;
   --primary-foreground: #0f0f0f;
-  --secondary: #2a2a2c;
-  --secondary-foreground: #ffffff;
-  --muted: #232325;
-  --muted-foreground: #b5b5b5;
-  --accent: #2a2a2c;
-  --accent-foreground: #ffffff;
+  --secondary: #e8edf2;
+  --secondary-foreground: #111214;
+  --muted: #eef2f6;
+  --muted-foreground: #5f6873;
+  --accent: #e8edf2;
+  --accent-foreground: #111214;
   --destructive: #ff2244;
-  --border: #303030;
-  --input: #303030;
-  --ring: #5ddafc;
+  --border: #d8e0e8;
+  --input: #d8e0e8;
+  --ring: #12a7cf;
   --chart-1: #5ddafc;
   --chart-2: #e3af20;
   --chart-3: #6e81ff;
   --chart-4: #00a6c7;
-  --chart-5: #b5b5b5;
+  --chart-5: #5f6873;
   --radius: 0.625rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
@@ -155,9 +153,12 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  color-scheme: light;
 }
 
 .dark {
+  /* Dark palette matching the rendered Jerwhyne Framer portfolio:
+     near-black canvas, white display type, light-cyan accent */
   --background: #121213;
   --foreground: #ffffff;
   --card: #1c1c1e;
@@ -189,9 +190,42 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  color-scheme: dark;
 }
 
 .portal-theme {
+  --background: #f6f8fb;
+  --foreground: #101318;
+  --card: #ffffff;
+  --card-foreground: #101318;
+  --popover: #ffffff;
+  --popover-foreground: #101318;
+  --primary: #5ddafc;
+  --primary-foreground: #071014;
+  --secondary: #e9eef5;
+  --secondary-foreground: #101318;
+  --muted: #edf1f6;
+  --muted-foreground: #647181;
+  --accent: #e5ebf3;
+  --accent-foreground: #101318;
+  --border: #d8e1eb;
+  --input: #d5deea;
+  --ring: #12a7cf;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #101318;
+  --sidebar-primary: #5ddafc;
+  --sidebar-primary-foreground: #071014;
+  --sidebar-accent: #eef3f8;
+  --sidebar-accent-foreground: #101318;
+  --sidebar-border: #dce4ee;
+  --sidebar-ring: #12a7cf;
+  --brand: #5ddafc;
+  --brand-dark: #0999c3;
+  --panel-muted: #edf1f6;
+  color-scheme: light;
+}
+
+.dark .portal-theme {
   --background: #0f1115;
   --foreground: #f7f8fa;
   --card: #171a20;
