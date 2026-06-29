@@ -1,8 +1,22 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, CheckCircle2, Loader2, RefreshCw, Save, Trash2, UserCog, UserPlus, X } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Loader2, MoreHorizontal, Pencil, RefreshCw, Save, Trash2, UserCog, UserPlus, X } from 'lucide-react';
 import { FormEvent, useState } from 'react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { deleteUser, getCurrentUser, getUsers, inviteUser, registerUser, sendUserPasswordReset, updateUser } from '@/lib/api';
 import { getApiErrorMessage } from '@/lib/errors';
 import { InviteUserPayload, RegisterPayload, UpdateUserPayload, User, UserRole, UserStatus } from '@/lib/types';
@@ -36,6 +50,7 @@ export default function AdminUsersPage() {
   const [inviteValues, setInviteValues] = useState<InviteUserPayload>(initialInviteValues);
   const [editValues, setEditValues] = useState<Record<string, EditableUser>>({});
   const [activeModal, setActiveModal] = useState<UserModal>(null);
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const usersQuery = useQuery({ queryKey: ['users'], queryFn: getUsers });
   const currentUserQuery = useQuery({ queryKey: ['auth', 'me'], queryFn: getCurrentUser });
   const users = usersQuery.data ?? [];
@@ -73,6 +88,7 @@ export default function AdminUsersPage() {
     mutationFn: ({ id, payload }: { id: string; payload: UpdateUserPayload }) => updateUser(id, payload),
     onSuccess: async (user) => {
       setEditValues((current) => ({ ...current, [user.id]: toEditableUser(user) }));
+      setEditingUserId(null);
       await queryClient.invalidateQueries({ queryKey: ['users'] });
       await queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
     },
@@ -136,6 +152,11 @@ export default function AdminUsersPage() {
     updateMutation.mutate({ id: user.id, payload });
   }
 
+  function editUser(user: User) {
+    setEditValues((current) => ({ ...current, [user.id]: current[user.id] ?? toEditableUser(user) }));
+    setEditingUserId(user.id);
+  }
+
   function removeUser(user: User) {
     if (window.confirm(`Delete ${user.name}'s account? This cannot be undone.`)) {
       deleteMutation.mutate(user.id);
@@ -143,6 +164,8 @@ export default function AdminUsersPage() {
   }
 
   const managementError = usersQuery.error ?? updateMutation.error ?? deleteMutation.error;
+  const editingUser = users.find((user) => user.id === editingUserId) ?? null;
+  const editingValues = editingUser ? (editValues[editingUser.id] ?? toEditableUser(editingUser)) : null;
 
   return (
     <>
@@ -191,110 +214,78 @@ export default function AdminUsersPage() {
             No users yet.
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-[var(--border)]">
-            <table className="w-full min-w-[1100px] border-collapse text-left text-sm">
-              <thead className="bg-[var(--panel-muted)] text-xs uppercase text-muted-foreground">
-                <tr>
-                  <th className="px-4 py-3">Name</th>
-                  <th className="px-4 py-3">Email</th>
-                  <th className="px-4 py-3">Role</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">New password</th>
-                  <th className="px-4 py-3">Created</th>
-                  <th className="px-4 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
+          <div className="rounded-xl border border-[var(--border)]">
+            <Table className="min-w-[900px]">
+              <TableHeader className="bg-[var(--panel-muted)] text-xs uppercase text-muted-foreground">
+                <TableRow>
+                  <TableHead className="px-4 py-3">Name</TableHead>
+                  <TableHead className="px-4 py-3">Email</TableHead>
+                  <TableHead className="px-4 py-3">Role</TableHead>
+                  <TableHead className="px-4 py-3">Status</TableHead>
+                  <TableHead className="px-4 py-3">Created</TableHead>
+                  <TableHead className="px-4 py-3 text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {users.map((user) => {
-                  const editableUser = editValues[user.id] ?? toEditableUser(user);
                   const isCurrentUser = user.id === currentUser?.id;
-                  const isSaving = updateMutation.isPending && updateMutation.variables?.id === user.id;
                   const isDeleting = deleteMutation.isPending && deleteMutation.variables === user.id;
 
                   return (
-                    <tr className="border-t border-[var(--border)] align-top" key={user.id}>
-                      <td className="px-4 py-3">
-                        <input
-                          className="input min-w-40"
-                          minLength={2}
-                          onChange={(event) => updateEditValue(user.id, 'name', event.target.value)}
-                          value={editableUser.name}
-                        />
+                    <TableRow className="align-top" key={user.id}>
+                      <TableCell className="px-4 py-3">
+                        <div className="font-bold">{user.name}</div>
                         {isCurrentUser ? <div className="mt-1 text-xs text-muted-foreground">Current account</div> : null}
-                      </td>
-                      <td className="px-4 py-3">
-                        <input
-                          className="input min-w-52"
-                          onChange={(event) => updateEditValue(user.id, 'email', event.target.value)}
-                          type="email"
-                          value={editableUser.email}
-                        />
-                      </td>
-                      <td className="px-4 py-3">
-                        <select
-                          className="select min-w-32"
-                          disabled={isCurrentUser}
-                          onChange={(event) => updateEditValue(user.id, 'role', event.target.value as UserRole)}
-                          value={editableUser.role}
-                        >
-                          {editableUser.role === 'CLIENT' ? <option value="CLIENT">Client</option> : null}
-                          <option value="TEAM">Team</option>
-                          <option value="ADMIN">Admin</option>
-                        </select>
-                      </td>
-                      <td className="px-4 py-3">
-                        <select
-                          className="select min-w-32"
-                          disabled={isCurrentUser}
-                          onChange={(event) => updateEditValue(user.id, 'status', event.target.value as UserStatus)}
-                          value={editableUser.status}
-                        >
-                          <option value="ACTIVE">Active</option>
-                          <option value="DISABLED">Disabled</option>
-                        </select>
-                      </td>
-                      <td className="px-4 py-3">
-                        <input
-                          autoComplete="new-password"
-                          className="input min-w-40"
-                          minLength={8}
-                          onChange={(event) => updateEditValue(user.id, 'password', event.target.value)}
-                          placeholder="Leave unchanged"
-                          type="password"
-                          value={editableUser.password}
-                        />
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground">{formatDate(user.createdAt)}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex justify-end gap-2">
-                          <button className="button button-primary" disabled={isSaving || isDeleting} onClick={() => saveUser(user)} type="button">
-                            <Save className="h-4 w-4" />
-                            {isSaving ? 'Saving' : 'Save'}
-                          </button>
-                          <button
-                            className="button button-secondary"
-                            disabled={resetMutation.isPending && resetMutation.variables === user.id}
-                            onClick={() => resetMutation.mutate(user.id)}
-                            type="button"
-                          >
-                            Reset
-                          </button>
-                          <button
-                            className="button button-secondary text-red-700"
-                            disabled={isCurrentUser || isSaving || isDeleting}
-                            onClick={() => removeUser(user)}
-                            type="button"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            {isDeleting ? 'Deleting' : 'Delete'}
-                          </button>
+                      </TableCell>
+                      <TableCell className="px-4 py-3">
+                        <span className="text-muted-foreground">{user.email}</span>
+                      </TableCell>
+                      <TableCell className="px-4 py-3">
+                        <span className="badge bg-[var(--panel-muted)] text-foreground">{formatRole(user.role)}</span>
+                      </TableCell>
+                      <TableCell className="px-4 py-3">
+                        <span className={user.status === 'ACTIVE' ? 'badge bg-emerald-500/10 text-emerald-300' : 'badge bg-red-500/10 text-red-300'}>
+                          {formatStatus(user.status)}
+                        </span>
+                      </TableCell>
+                      <TableCell className="px-4 py-3 text-muted-foreground">{formatDate(user.createdAt)}</TableCell>
+                      <TableCell className="px-4 py-3">
+                        <div className="flex justify-end">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button className="button button-secondary p-2" type="button" aria-label={`Open actions for ${user.name}`}>
+                                <MoreHorizontal className="h-4 w-4" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-44">
+                              <DropdownMenuItem onClick={() => editUser(user)}>
+                                <Pencil className="h-4 w-4" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                disabled={resetMutation.isPending && resetMutation.variables === user.id}
+                                onClick={() => resetMutation.mutate(user.id)}
+                              >
+                                <RefreshCw className="h-4 w-4" />
+                                Reset password
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                disabled={isCurrentUser || isDeleting}
+                                onClick={() => removeUser(user)}
+                                variant="destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                {isDeleting ? 'Deleting' : 'Delete'}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   );
                 })}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
       </section>
@@ -352,6 +343,84 @@ export default function AdminUsersPage() {
             {createMutation.isPending ? 'Creating account' : 'Create account'}
           </button>
         </form>
+      </UserFormModal>
+
+      <UserFormModal onClose={() => setEditingUserId(null)} open={Boolean(editingUser && editingValues)} title="Edit user account">
+        {editingUser && editingValues ? (
+          <form className="grid gap-5" onSubmit={(event) => { event.preventDefault(); saveUser(editingUser); }}>
+            {updateMutation.isError ? <ErrorMessage message={getApiErrorMessage(updateMutation.error, 'Unable to update user account.')} /> : null}
+            <div className="grid gap-4">
+              <div className="field">
+                <label htmlFor="edit-name">Name</label>
+                <input
+                  className="input"
+                  id="edit-name"
+                  minLength={2}
+                  onChange={(event) => updateEditValue(editingUser.id, 'name', event.target.value)}
+                  required
+                  value={editingValues.name}
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="edit-email">Email</label>
+                <input
+                  className="input"
+                  id="edit-email"
+                  onChange={(event) => updateEditValue(editingUser.id, 'email', event.target.value)}
+                  required
+                  type="email"
+                  value={editingValues.email}
+                />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="field">
+                  <label htmlFor="edit-role">Role</label>
+                  <select
+                    className="select"
+                    disabled={editingUser.id === currentUser?.id}
+                    id="edit-role"
+                    onChange={(event) => updateEditValue(editingUser.id, 'role', event.target.value as UserRole)}
+                    value={editingValues.role}
+                  >
+                    {editingValues.role === 'CLIENT' ? <option value="CLIENT">Client</option> : null}
+                    <option value="TEAM">Team</option>
+                    <option value="ADMIN">Admin</option>
+                  </select>
+                </div>
+                <div className="field">
+                  <label htmlFor="edit-status">Status</label>
+                  <select
+                    className="select"
+                    disabled={editingUser.id === currentUser?.id}
+                    id="edit-status"
+                    onChange={(event) => updateEditValue(editingUser.id, 'status', event.target.value as UserStatus)}
+                    value={editingValues.status}
+                  >
+                    <option value="ACTIVE">Active</option>
+                    <option value="DISABLED">Disabled</option>
+                  </select>
+                </div>
+              </div>
+              <div className="field">
+                <label htmlFor="edit-password">New password</label>
+                <input
+                  autoComplete="new-password"
+                  className="input"
+                  id="edit-password"
+                  minLength={8}
+                  onChange={(event) => updateEditValue(editingUser.id, 'password', event.target.value)}
+                  placeholder="Leave unchanged"
+                  type="password"
+                  value={editingValues.password}
+                />
+              </div>
+            </div>
+            <button className="button button-primary justify-center" disabled={updateMutation.isPending} type="submit">
+              <Save className="h-4 w-4" />
+              {updateMutation.isPending ? 'Saving' : 'Save changes'}
+            </button>
+          </form>
+        ) : null}
       </UserFormModal>
     </>
   );
@@ -446,4 +515,12 @@ function toEditableUser(user: User): EditableUser {
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(value));
+}
+
+function formatRole(role: UserRole) {
+  return role.replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function formatStatus(status: UserStatus) {
+  return status.toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
 }

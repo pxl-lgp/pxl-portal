@@ -1,9 +1,10 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, ArrowLeft, CheckCircle2, ExternalLink, KeyRound, UserPlus } from 'lucide-react';
+import { AlertCircle, ArrowLeft, CheckCircle2, ExternalLink, KeyRound, Pencil, UserPlus, X } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { useState } from 'react';
 import {
   createClientPortalUser,
   disableClientPortalUser,
@@ -24,6 +25,7 @@ import { SocialConnectionsPanel } from '@/components/portal/social-connections-p
 export default function ClientDetailPage() {
   const params = useParams<{ id: string }>();
   const queryClient = useQueryClient();
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const clientQuery = useQuery({
     queryKey: ['clients', params.id],
     queryFn: () => getClient(params.id),
@@ -31,6 +33,7 @@ export default function ClientDetailPage() {
   const updateMutation = useMutation({
     mutationFn: (payload: ClientPayload) => updateClient(params.id, payload),
     onSuccess: async (client) => {
+      setIsEditModalOpen(false);
       queryClient.setQueryData(['clients', params.id], client);
       await queryClient.invalidateQueries({ queryKey: ['clients'] });
     },
@@ -100,6 +103,10 @@ export default function ClientDetailPage() {
               Drive
             </a>
           ) : null}
+          <button className="button button-primary" onClick={() => setIsEditModalOpen(true)} type="button">
+            <Pencil className="h-4 w-4" />
+            Edit client
+          </button>
         </div>
       </div>
 
@@ -113,6 +120,8 @@ export default function ClientDetailPage() {
           Client updated.
         </div>
       ) : null}
+
+      <ClientDetailsCard client={client} />
 
       <section className="panel grid gap-4 p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -204,9 +213,119 @@ export default function ClientDetailPage() {
 
       <ClientOnboardingPanel client={client} />
       <ContentPillarsPanel clientId={client.id} />
-      <ClientForm client={client} isSaving={updateMutation.isPending} onSubmit={(payload) => updateMutation.mutate(payload)} />
+      <EditClientModal
+        client={client}
+        isSaving={updateMutation.isPending}
+        onClose={() => setIsEditModalOpen(false)}
+        onSubmit={(payload) => updateMutation.mutate(payload)}
+        open={isEditModalOpen}
+      />
       <SocialConnectionsPanel clientId={client.id} />
       <DriveBrowser clientId={client.id} driveUrl={client.driveFolderUrl} />
     </>
+  );
+}
+
+function ClientDetailsCard({ client }: { client: NonNullable<Awaited<ReturnType<typeof getClient>>> }) {
+  const socialLinks = Object.entries(client.socialLinks).filter(([, value]) => value);
+
+  return (
+    <section className="panel grid gap-5 p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="font-black">Client details</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Read-only overview. Use Edit client to update this profile.</p>
+        </div>
+        <StatusBadge status={client.status} />
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <Detail label="Business name" value={client.businessName} />
+        <Detail label="Industry" value={client.industry} />
+        <Detail label="Contact person" value={client.contactPerson} />
+        <Detail label="Email" value={client.email} />
+        <Detail label="Phone" value={client.phone} />
+        <Detail label="Portal account" value={client.userId ? client.portalUserEmail ?? 'Linked' : 'Not linked'} />
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2">
+        <Detail label="Services needed" value={client.servicesNeeded.join(', ') || null} />
+        <Detail label="Drive folder" value={client.driveFolderUrl} />
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2">
+        <LongDetail label="Goals" value={client.goals} />
+        <LongDetail label="Brand notes" value={client.brandNotes} />
+      </div>
+
+      <div>
+        <h3 className="text-sm font-bold">Social links</h3>
+        {socialLinks.length > 0 ? (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {socialLinks.map(([key, value]) => (
+              <a className="button button-secondary" href={value} key={key} rel="noreferrer" target="_blank">
+                <ExternalLink className="h-4 w-4" />
+                {key}
+              </a>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-1 text-sm text-muted-foreground">No social links set.</p>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function Detail({ label, value }: { label: string; value: string | null | undefined }) {
+  return (
+    <div className="rounded-lg bg-[var(--panel-muted)] p-3">
+      <div className="text-xs font-bold uppercase text-muted-foreground">{label}</div>
+      <div className="mt-1 break-words text-sm font-bold">{value || 'Not set'}</div>
+    </div>
+  );
+}
+
+function LongDetail({ label, value }: { label: string; value: string | null | undefined }) {
+  return (
+    <div className="rounded-lg bg-[var(--panel-muted)] p-3">
+      <div className="text-xs font-bold uppercase text-muted-foreground">{label}</div>
+      <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-foreground/80">{value || 'Not set'}</p>
+    </div>
+  );
+}
+
+function EditClientModal({
+  client,
+  isSaving,
+  onClose,
+  onSubmit,
+  open,
+}: {
+  client: NonNullable<Awaited<ReturnType<typeof getClient>>>;
+  isSaving: boolean;
+  onClose: () => void;
+  onSubmit: (payload: ClientPayload) => void;
+  open: boolean;
+}) {
+  if (!open) {
+    return null;
+  }
+
+  return (
+    <div aria-modal="true" className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4 backdrop-blur-sm" role="dialog">
+      <div className="max-h-[90dvh] w-full max-w-4xl overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--panel)] p-5 shadow-2xl">
+        <div className="mb-5 flex items-start justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <Pencil className="h-5 w-5 text-[var(--brand)]" />
+            <h2 className="font-black">Edit client</h2>
+          </div>
+          <button aria-label="Close modal" className="button button-secondary p-2" onClick={onClose} type="button">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <ClientForm client={client} isSaving={isSaving} onSubmit={onSubmit} />
+      </div>
+    </div>
   );
 }
