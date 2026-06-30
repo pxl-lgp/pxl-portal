@@ -8,14 +8,18 @@ import { PxlLogo } from "@/components/site/pxl-logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
 
-const links = [
-  { href: "#about", label: "About" },
-  { href: "#services", label: "Services" },
-  { href: "#why-us", label: "Why Us" },
-  { href: "#process", label: "Process" },
-  { href: "#results", label: "Results" },
-  { href: "#industries", label: "Industries" },
-  { href: "#faq", label: "FAQ" },
+type NavLink = {
+  href: string;
+  label: string;
+  sectionId?: string;
+};
+
+const links: NavLink[] = [
+  { href: "/#services", label: "Services", sectionId: "services" },
+  { href: "/#results", label: "Results", sectionId: "results" },
+  { href: "/#about", label: "About", sectionId: "about" },
+  { href: "/learn-more", label: "Learn More" },
+  { href: "/#contact", label: "Contact", sectionId: "contact" },
 ];
 
 export function Navbar() {
@@ -35,12 +39,12 @@ export function Navbar() {
 
   useEffect(() => {
     const sections = links
-      .map((l) => document.querySelector(l.href))
-      .filter((el): el is Element => el !== null);
+      .map((l) => (l.sectionId ? document.getElementById(l.sectionId) : null))
+      .filter((el): el is HTMLElement => el !== null);
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
-          if (entry.isIntersecting) setActive(`#${entry.target.id}`);
+          if (entry.isIntersecting) setActive(entry.target.id);
         }
       },
       { rootMargin: "-40% 0px -55% 0px" }
@@ -64,28 +68,28 @@ export function Navbar() {
             : "max-w-7xl border border-transparent bg-transparent shadow-none"
         )}
       >
-        <a
-          href="#top"
+        <Link
+          href="/#top"
           className="transition-transform duration-300 hover:scale-105"
           aria-label="PXL — Digital Marketing, back to top"
         >
           <PxlLogo className="h-7" />
-        </a>
+        </Link>
 
         <div className="hidden items-center gap-1 lg:flex">
           {links.map((link) => (
-            <a
+            <Link
               key={link.href}
               href={link.href}
               className={cn(
                 "rounded-full px-3 py-1.5 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
-                active === link.href
+                active === link.sectionId
                   ? "bg-accent text-accent-foreground"
                   : "text-muted-foreground"
               )}
             >
               {link.label}
-            </a>
+            </Link>
           ))}
         </div>
 
@@ -120,14 +124,14 @@ export function Navbar() {
         <div className="mx-auto mt-3 max-w-7xl rounded-3xl border border-border/70 bg-background/95 shadow-xl shadow-slate-950/10 backdrop-blur-xl lg:hidden dark:border-white/10 dark:shadow-black/30">
           <div className="mx-auto grid max-w-7xl gap-1 px-4 py-3">
             {links.map((link) => (
-              <a
+              <Link
                 key={link.href}
                 href={link.href}
                 onClick={() => setOpen(false)}
                 className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
               >
                 {link.label}
-              </a>
+              </Link>
             ))}
             <Link
               href="/login"

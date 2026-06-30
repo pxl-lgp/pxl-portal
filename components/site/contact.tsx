@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { CheckCircle2, Mail, MapPin, Phone, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -86,7 +87,7 @@ export function Contact() {
                     </p>
                     <div className="flex gap-3">
                       <Button asChild variant="outline" className="rounded-full">
-                        <a href="#services">Explore Services</a>
+                        <Link href="/#services">Explore Services</Link>
                       </Button>
                       <Button
                         variant="ghost"

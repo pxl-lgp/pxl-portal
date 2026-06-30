@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -44,6 +45,19 @@ const socials = [
   { icon: LinkedinIcon, label: "LinkedIn" },
 ];
 
+const footerLinks: Record<string, string> = {
+  "Social Media Management": "/#services",
+  "Digital Advertising": "/#services",
+  "Content Marketing": "/#services",
+  "Website Solutions": "/#services",
+  "Brand Development": "/#services",
+  "About Us": "/#about",
+  "Our Process": "/learn-more#process",
+  Results: "/#results",
+  Industries: "/learn-more#industries",
+  FAQ: "/learn-more#faq",
+};
+
 export function Footer() {
   const [subscribed, setSubscribed] = useState(false);
 
@@ -59,13 +73,13 @@ export function Footer() {
         <div className="grid gap-10 lg:grid-cols-12">
           {/* Brand + summary */}
           <div className="space-y-4 lg:col-span-5">
-            <a
-              href="#top"
+            <Link
+              href="/#top"
               className="inline-block transition-transform duration-300 hover:scale-105"
               aria-label="PXL — Digital Marketing, back to top"
             >
               <PxlLogo className="h-10" tagline />
-            </a>
+            </Link>
             <p className="text-sm leading-relaxed text-muted-foreground">
               {footer.summary}
             </p>
@@ -93,16 +107,12 @@ export function Footer() {
               <ul className="space-y-2">
                 {column.links.map((link) => (
                   <li key={link}>
-                    <a
-                      href={
-                        column.title === "Services"
-                          ? "#services"
-                          : `#${link.toLowerCase().replace(/\s+/g, "-").replace("about-us", "about").replace("our-process", "process")}`
-                      }
+                    <Link
+                      href={footerLinks[link] ?? "/"}
                       className="text-sm text-muted-foreground transition-colors hover:text-primary"
                     >
                       {link}
-                    </a>
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -137,9 +147,9 @@ export function Footer() {
             )}
             <p className="mt-4 text-sm font-medium">
               {footer.footerCta}{" "}
-              <a href="#contact" className="text-primary underline-offset-4 hover:underline">
+              <Link href="/#contact" className="text-primary underline-offset-4 hover:underline">
                 Let&apos;s talk →
-              </a>
+              </Link>
             </p>
           </div>
         </div>
