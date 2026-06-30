@@ -16,11 +16,19 @@ export function getAccessToken() {
 }
 
 export function setAccessToken(token: string) {
+  if (window.localStorage.getItem(TOKEN_KEY) === token) {
+    return;
+  }
+
   window.localStorage.setItem(TOKEN_KEY, token);
   notifyTokenChanged();
 }
 
 export function clearAccessToken() {
+  if (!window.localStorage.getItem(TOKEN_KEY)) {
+    return;
+  }
+
   window.localStorage.removeItem(TOKEN_KEY);
   notifyTokenChanged();
 }

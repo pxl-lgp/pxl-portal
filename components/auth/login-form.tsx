@@ -62,10 +62,10 @@ export function LoginForm() {
   }, []);
 
   useEffect(() => {
-    if (currentUserQuery.data) {
+    if (hasStoredToken && currentUserQuery.data) {
       router.replace(currentUserQuery.data.role === "CLIENT" ? "/client/dashboard" : "/admin/dashboard");
     }
-  }, [currentUserQuery.data, router]);
+  }, [currentUserQuery.data, hasStoredToken, router]);
 
   useEffect(() => {
     if (currentUserQuery.isError) {

@@ -2,6 +2,7 @@ import { Navbar } from "@/components/site/navbar";
 import { ScrollProgress } from "@/components/site/scroll-progress";
 import { Hero } from "@/components/site/hero";
 import { Marquee } from "@/components/site/marquee";
+import { ClientLogoMarquee } from "@/components/site/client-logo-marquee";
 import { About } from "@/components/site/about";
 import { Services } from "@/components/site/services";
 import { WhyUs } from "@/components/site/why-us";
@@ -23,6 +24,7 @@ export default function Home() {
       <Navbar />
       <Hero />
       <Marquee />
+      <ClientLogoMarquee />
       <About />
       <Services />
       <WhyUs />

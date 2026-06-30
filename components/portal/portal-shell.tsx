@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Archive,
   Activity,
@@ -155,6 +155,7 @@ export function PortalShell({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const userQuery = useQuery({
     queryKey: ["auth", "me"],
@@ -181,6 +182,7 @@ export function PortalShell({
 
   function logout() {
     clearAccessToken();
+    queryClient.removeQueries({ queryKey: ["auth"] });
     router.replace("/login");
   }
 

@@ -101,7 +101,7 @@ export function Navbar() {
           </Button>
           <Button
             asChild
-            className="hidden rounded-full bg-white text-[#0f0f0f] hover:bg-white/85 sm:inline-flex"
+            className="hidden rounded-full bg-primary font-bold text-primary-foreground hover:bg-primary/85 sm:inline-flex dark:bg-white dark:text-[#0f0f0f] dark:hover:bg-white/85"
           >
             <Link href="/get-started">Get My Free Growth Plan</Link>
           </Button>
@@ -140,7 +140,7 @@ export function Navbar() {
             <ThemeToggle className="mt-2 justify-self-start" showLabel />
             <Button
               asChild
-              className="mt-2 rounded-full bg-white text-[#0f0f0f] hover:bg-white/85"
+              className="mt-2 rounded-full bg-primary font-bold text-primary-foreground hover:bg-primary/85 dark:bg-white dark:text-[#0f0f0f] dark:hover:bg-white/85"
             >
               <Link href="/get-started" onClick={() => setOpen(false)}>
                 Get My Free Growth Plan

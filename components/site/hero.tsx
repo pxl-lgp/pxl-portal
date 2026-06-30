@@ -115,7 +115,7 @@ export function Hero() {
             <Button
               asChild
               size="lg"
-              className="group rounded-full bg-white px-8 text-base text-[#0f0f0f] shadow-lg shadow-primary/20 hover:bg-white/85 active:scale-95"
+              className="group rounded-full bg-primary px-8 text-base font-bold text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/85 active:scale-95 dark:bg-white dark:text-[#0f0f0f] dark:hover:bg-white/85"
             >
               <Link href="/get-started">
                 {hero.primaryCta}
