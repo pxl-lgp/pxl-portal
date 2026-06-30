@@ -33,6 +33,7 @@ import {
   UserRound,
   UsersRound,
   WalletCards,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -82,20 +83,55 @@ export function FunnelFlow() {
   const [phase, setPhase] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [contact, setContact] = useState({ name: "", email: "", company: "" });
+  const [resultModal, setResultModal] = useState<{
+    type: "success" | "error";
+    title: string;
+    message: string;
+  } | null>(null);
+  const recommendation =
+    funnel.recommendations[answers.goal] ?? funnel.recommendations.unsure;
+
   const leadMutation = useMutation({
-    mutationFn: () =>
-      createLead({
+    mutationFn: () => {
+      const readableAnswers = funnel.steps.map((step) => {
+        const value = answers[step.id];
+        const selected = step.options.find((option) => option.value === value);
+
+        return `${step.question}: ${selected?.label ?? value ?? "Not answered"}`;
+      });
+
+      return createLead({
         businessName: contact.company.trim() || `${contact.name.trim()} website lead`,
         contactPerson: contact.name.trim(),
         email: contact.email.trim().toLowerCase(),
-        source: "website-funnel",
-        message: Object.entries(answers)
-          .map(([key, value]) => `${key}: ${value}`)
-          .join("\n"),
-      }),
+        source: "Free growth plan funnel",
+        message: [
+          "Free Growth Plan Request",
+          "",
+          ...readableAnswers,
+          "",
+          `Recommended starting point: ${recommendation.title}`,
+          `Recommended services: ${recommendation.services.join(", ")}`,
+          "",
+          recommendation.blurb,
+        ].join("\n"),
+      });
+    },
     onSuccess: () => {
       setPhase(successPhase);
+      setResultModal({
+        type: "success",
+        title: funnel.success.title,
+        message: "Your answers were sent successfully. We'll email your custom growth plan within 2 business days.",
+      });
       fireConfetti(window.innerWidth / 2, window.innerHeight / 3);
+    },
+    onError: (error) => {
+      setResultModal({
+        type: "error",
+        title: "Plan Request Not Sent",
+        message: getApiErrorMessage(error, "Could not submit your details. Please try again."),
+      });
     },
   });
 
@@ -112,9 +148,6 @@ export function FunnelFlow() {
     e.preventDefault();
     leadMutation.mutate();
   };
-
-  const recommendation =
-    funnel.recommendations[answers.goal] ?? funnel.recommendations.unsure;
 
   return (
     <div className="relative flex min-h-dvh flex-col overflow-hidden">
@@ -377,6 +410,55 @@ export function FunnelFlow() {
           </div>
         )}
       </main>
+
+      {resultModal ? (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm animate-in fade-in"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="funnel-result-title"
+        >
+          <div className="relative w-full max-w-md rounded-3xl border bg-card p-8 text-center shadow-2xl animate-pop">
+            <button
+              type="button"
+              onClick={() => setResultModal(null)}
+              className="absolute right-4 top-4 rounded-full p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              aria-label="Close request status"
+            >
+              <X className="size-5" />
+            </button>
+            <div
+              className={
+                resultModal.type === "success"
+                  ? "mx-auto mb-5 flex size-16 items-center justify-center rounded-2xl bg-primary/10 text-primary"
+                  : "mx-auto mb-5 flex size-16 items-center justify-center rounded-2xl bg-destructive/10 text-destructive"
+              }
+            >
+              {resultModal.type === "success" ? (
+                <Check className="size-9" />
+              ) : (
+                <AlertCircle className="size-9" />
+              )}
+            </div>
+            <h3 id="funnel-result-title" className="text-2xl font-extrabold">
+              {resultModal.title}
+            </h3>
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+              {resultModal.message}
+            </p>
+            <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
+              <Button className="rounded-full" onClick={() => setResultModal(null)}>
+                {resultModal.type === "success" ? "Great, thanks" : "Try Again"}
+              </Button>
+              {resultModal.type === "error" ? (
+                <Button asChild variant="outline" className="rounded-full">
+                  <a href="mailto:jerwhynes@gmail.com">Email Directly</a>
+                </Button>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
