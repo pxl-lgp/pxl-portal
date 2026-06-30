@@ -20,18 +20,13 @@ const links = [
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
-  const [hidden, setHidden] = useState(false);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState("");
 
   useEffect(() => {
-    let lastY = window.scrollY;
     const onScroll = () => {
       const y = window.scrollY;
       setScrolled(y > 24);
-      // tuck the bar away while scrolling down, bring it back on scroll up
-      setHidden(y > 300 && y > lastY);
-      lastY = y;
     };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -57,14 +52,18 @@ export function Navbar() {
   return (
     <header
       className={cn(
-        "fixed inset-x-0 top-0 z-50 transition-all duration-300",
-        scrolled
-          ? "border-b bg-background/80 shadow-sm backdrop-blur-lg"
-          : "bg-transparent",
-        hidden && !open && "-translate-y-full"
+        "fixed inset-x-0 z-50 px-4 transition-all duration-300 sm:px-6",
+        scrolled ? "top-4" : "top-0"
       )}
     >
-      <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
+      <nav
+        className={cn(
+          "mx-auto flex h-16 items-center justify-between px-4 transition-all duration-300 sm:px-6",
+          scrolled
+            ? "max-w-6xl rounded-full border border-border/70 bg-background/90 shadow-[0_20px_55px_rgba(15,23,42,0.14)] backdrop-blur-xl dark:border-white/10 dark:shadow-[0_20px_55px_rgba(0,0,0,0.36)]"
+            : "max-w-7xl border border-transparent bg-transparent shadow-none"
+        )}
+      >
         <a
           href="#top"
           className="transition-transform duration-300 hover:scale-105"
@@ -118,7 +117,7 @@ export function Navbar() {
       </nav>
 
       {open && (
-        <div className="border-b bg-background/95 backdrop-blur-lg lg:hidden">
+        <div className="mx-auto mt-3 max-w-7xl rounded-3xl border border-border/70 bg-background/95 shadow-xl shadow-slate-950/10 backdrop-blur-xl lg:hidden dark:border-white/10 dark:shadow-black/30">
           <div className="mx-auto grid max-w-7xl gap-1 px-4 py-3">
             {links.map((link) => (
               <a
