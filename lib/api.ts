@@ -454,6 +454,16 @@ export async function createWorkspaceChannel(payload: {
   return response.data;
 }
 
+export async function updateWorkspaceChannel(id: string, payload: Partial<Pick<WorkspaceChannel, 'name' | 'description' | 'visibility'>>) {
+  const response = await api.patch<WorkspaceChannel>(`/workspace/channels/${id}`, payload);
+  return response.data;
+}
+
+export async function deleteWorkspaceChannel(id: string) {
+  const response = await api.delete<{ deleted: boolean; id: string }>(`/workspace/channels/${id}`);
+  return response.data;
+}
+
 export async function getWorkspaceMessages(channelId: string) {
   const response = await api.get<WorkspaceMessage[]>(`/workspace/channels/${channelId}/messages`);
   return response.data;
@@ -464,6 +474,11 @@ export async function createWorkspaceMessage(channelId: string, body: string) {
   return response.data;
 }
 
+export async function deleteWorkspaceMessage(id: string) {
+  const response = await api.delete<{ deleted: boolean; id: string }>(`/workspace/messages/${id}`);
+  return response.data;
+}
+
 export async function getWorkspaceBoards() {
   const response = await api.get<WorkspaceBoard[]>('/workspace/boards');
   return response.data;
@@ -471,6 +486,16 @@ export async function getWorkspaceBoards() {
 
 export async function createWorkspaceBoard(payload: { name: string; description?: string; clientId?: string }) {
   const response = await api.post<WorkspaceBoard>('/workspace/boards', payload);
+  return response.data;
+}
+
+export async function updateWorkspaceBoard(id: string, payload: Partial<Pick<WorkspaceBoard, 'name' | 'description'>>) {
+  const response = await api.patch<WorkspaceBoard>(`/workspace/boards/${id}`, payload);
+  return response.data;
+}
+
+export async function deleteWorkspaceBoard(id: string) {
+  const response = await api.delete<{ deleted: boolean; id: string }>(`/workspace/boards/${id}`);
   return response.data;
 }
 
@@ -497,6 +522,11 @@ export async function updateWorkspaceTask(id: string, payload: Partial<Pick<Work
   return response.data;
 }
 
+export async function deleteWorkspaceTask(id: string) {
+  const response = await api.delete<{ deleted: boolean; id: string }>(`/workspace/tasks/${id}`);
+  return response.data;
+}
+
 export async function getWorkspaceTaskComments(taskId: string) {
   const response = await api.get<WorkspaceTaskComment[]>(`/workspace/tasks/${taskId}/comments`);
   return response.data;
@@ -504,6 +534,11 @@ export async function getWorkspaceTaskComments(taskId: string) {
 
 export async function createWorkspaceTaskComment(taskId: string, body: string) {
   const response = await api.post<WorkspaceTaskComment>(`/workspace/tasks/${taskId}/comments`, { body });
+  return response.data;
+}
+
+export async function deleteWorkspaceTaskComment(id: string) {
+  const response = await api.delete<{ deleted: boolean; id: string }>(`/workspace/task-comments/${id}`);
   return response.data;
 }
 
@@ -519,6 +554,11 @@ export async function createWorkspacePage(payload: { title: string; text?: strin
 
 export async function updateWorkspacePage(id: string, payload: { title?: string; text?: string }) {
   const response = await api.patch<WorkspacePage>(`/workspace/pages/${id}`, payload);
+  return response.data;
+}
+
+export async function deleteWorkspacePage(id: string) {
+  const response = await api.delete<{ deleted: boolean; id: string }>(`/workspace/pages/${id}`);
   return response.data;
 }
 
