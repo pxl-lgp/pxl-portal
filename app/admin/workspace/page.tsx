@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { BookOpenText, CheckSquare, Hash, Loader2, MoreHorizontal, Plus, Send, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
@@ -92,6 +92,9 @@ function ChannelsTab({ initialClientId }: { initialClientId?: string }) {
   const [channelName, setChannelName] = useState('');
   const [clientId, setClientId] = useState(initialClientId ?? 'none');
   const [message, setMessage] = useState('');
+  const [messagePage, setMessagePage] = useState(1);
+  const messageListRef = useRef<HTMLDivElement | null>(null);
+  const preserveScrollFromBottomRef = useRef<number | null>(null);
   const channelsQuery = useQuery({ queryKey: ['workspace', 'channels'], queryFn: getWorkspaceChannels });
   const clientsQuery = useQuery({ queryKey: ['clients'], queryFn: getClients });
   const channels = channelsQuery.data ?? [];
@@ -110,6 +113,7 @@ function ChannelsTab({ initialClientId }: { initialClientId?: string }) {
       setChannelName('');
       setClientId(initialClientId ?? 'none');
       setSelectedId(channel.id);
+      setMessagePage(1);
       await queryClient.invalidateQueries({ queryKey: ['workspace', 'channels'] });
     },
     onError: () => toast.error('Unable to create channel.'),
@@ -142,6 +146,27 @@ function ChannelsTab({ initialClientId }: { initialClientId?: string }) {
     },
     onError: () => toast.error('Unable to delete message.'),
   });
+  const messages = messagesQuery.data ?? [];
+  const messagesPerPage = 8;
+  const totalMessagePages = Math.max(1, Math.ceil(messages.length / messagesPerPage));
+  const loadedMessagePages = Math.min(messagePage, totalMessagePages);
+  const firstVisibleMessageIndex = Math.max(0, messages.length - loadedMessagePages * messagesPerPage);
+  const visibleMessages = messages.slice(firstVisibleMessageIndex);
+  const firstVisibleMessage = messages.length === 0 ? 0 : firstVisibleMessageIndex + 1;
+  const lastVisibleMessage = messages.length;
+
+  useEffect(() => {
+    const list = messageListRef.current;
+    if (!list) return;
+
+    if (preserveScrollFromBottomRef.current !== null) {
+      list.scrollTop = list.scrollHeight - preserveScrollFromBottomRef.current;
+      preserveScrollFromBottomRef.current = null;
+      return;
+    }
+
+    list.scrollTop = list.scrollHeight;
+  }, [activeChannelId, messages.length, visibleMessages.length]);
 
   return (
     <section className="grid min-h-[620px] gap-4 lg:grid-cols-[320px_1fr]">
@@ -187,7 +212,10 @@ function ChannelsTab({ initialClientId }: { initialClientId?: string }) {
                   <TableRow
                     className={`cursor-pointer ${activeChannelId === channel.id ? 'bg-primary/10 text-primary' : ''}`}
                     key={channel.id}
-                    onClick={() => setSelectedId(channel.id)}
+                    onClick={() => {
+                      setSelectedId(channel.id);
+                      setMessagePage(1);
+                    }}
                   >
                     <TableCell className="px-3 py-2 font-semibold"># {channel.name}</TableCell>
                     <TableCell className="px-3 py-2 text-xs text-muted-foreground">
@@ -232,12 +260,33 @@ function ChannelsTab({ initialClientId }: { initialClientId?: string }) {
           {channelsQuery.isLoading ? <p className="p-3 text-sm text-muted-foreground">Loading channels...</p> : null}
         </div>
       </aside>
-      <main className="panel flex min-h-[620px] flex-col overflow-hidden">
-        <div className="border-b p-4">
-          <h2 className="font-black">#{channels.find((channel) => channel.id === activeChannelId)?.name ?? 'Select a channel'}</h2>
+      <main className="panel flex h-[720px] max-h-[calc(100vh-220px)] min-h-[520px] flex-col overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b p-4">
+          <div>
+            <h2 className="font-black">#{channels.find((channel) => channel.id === activeChannelId)?.name ?? 'Select a channel'}</h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {messages.length > 0 ? `Showing ${firstVisibleMessage}-${lastVisibleMessage} of ${messages.length} messages` : 'No messages yet'}
+            </p>
+          </div>
+          {loadedMessagePages < totalMessagePages ? (
+            <p className="text-xs font-semibold text-muted-foreground">Scroll up for older messages</p>
+          ) : null}
         </div>
-        <div className="flex-1 space-y-3 overflow-y-auto p-4">
-          {messagesQuery.data?.map((item) => (
+        <div
+          ref={messageListRef}
+          className="flex-1 space-y-3 overflow-y-auto p-4"
+          onScroll={(event) => {
+            const target = event.currentTarget;
+            if (target.scrollTop <= 120) {
+              preserveScrollFromBottomRef.current = target.scrollHeight - target.scrollTop;
+              setMessagePage((page) => Math.min(totalMessagePages, page + 1));
+            }
+          }}
+        >
+          {loadedMessagePages < totalMessagePages ? (
+            <p className="py-3 text-center text-xs font-semibold text-muted-foreground">Older messages load as you scroll up.</p>
+          ) : null}
+          {visibleMessages.map((item) => (
             <article
               className={`rounded-xl border p-3 ${item.metadata.system ? 'border-primary/20 bg-primary/5' : ''}`}
               key={item.id}
