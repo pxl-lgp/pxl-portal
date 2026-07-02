@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { BookOpenText, CheckSquare, Hash, Loader2, MoreHorizontal, Plus, Send, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
@@ -95,6 +95,8 @@ function ChannelsTab({ initialClientId }: { initialClientId?: string }) {
   const [messagePage, setMessagePage] = useState(1);
   const messageListRef = useRef<HTMLDivElement | null>(null);
   const preserveScrollFromBottomRef = useRef<number | null>(null);
+  const previousActiveChannelIdRef = useRef<string | null>(null);
+  const shouldStickToBottomRef = useRef(true);
   const channelsQuery = useQuery({ queryKey: ['workspace', 'channels'], queryFn: getWorkspaceChannels });
   const clientsQuery = useQuery({ queryKey: ['clients'], queryFn: getClients });
   const channels = channelsQuery.data ?? [];
@@ -155,17 +157,21 @@ function ChannelsTab({ initialClientId }: { initialClientId?: string }) {
   const firstVisibleMessage = messages.length === 0 ? 0 : firstVisibleMessageIndex + 1;
   const lastVisibleMessage = messages.length;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const list = messageListRef.current;
     if (!list) return;
+    const channelChanged = previousActiveChannelIdRef.current !== activeChannelId;
+
+    previousActiveChannelIdRef.current = activeChannelId;
 
     if (preserveScrollFromBottomRef.current !== null) {
       list.scrollTop = list.scrollHeight - preserveScrollFromBottomRef.current;
       preserveScrollFromBottomRef.current = null;
-      return;
+    } else if (channelChanged || shouldStickToBottomRef.current) {
+      list.scrollTop = list.scrollHeight;
     }
 
-    list.scrollTop = list.scrollHeight;
+    shouldStickToBottomRef.current = list.scrollHeight - list.scrollTop - list.clientHeight <= 120;
   }, [activeChannelId, messages.length, visibleMessages.length]);
 
   return (
@@ -277,6 +283,12 @@ function ChannelsTab({ initialClientId }: { initialClientId?: string }) {
           className="flex-1 space-y-3 overflow-y-auto p-4"
           onScroll={(event) => {
             const target = event.currentTarget;
+            shouldStickToBottomRef.current = target.scrollHeight - target.scrollTop - target.clientHeight <= 120;
+            if (loadedMessagePages >= totalMessagePages) return;
+            if (target.scrollTop <= 120) {
+              preserveScrollFromBottomRef.current = target.scrollHeight - target.scrollTop;
+              setMessagePage((page) => Math.min(totalMessagePages, page + 1));
+            }
             if (target.scrollTop <= 120) {
               preserveScrollFromBottomRef.current = target.scrollHeight - target.scrollTop;
               setMessagePage((page) => Math.min(totalMessagePages, page + 1));
