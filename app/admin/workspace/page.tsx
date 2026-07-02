@@ -282,9 +282,13 @@ function ChannelsTab({ initialClientId }: { initialClientId?: string }) {
           ref={messageListRef}
           className="flex-1 space-y-3 overflow-y-auto p-4"
           onScroll={(event) => {
-            if (loadedMessagePages >= totalMessagePages) return;
             const target = event.currentTarget;
             shouldStickToBottomRef.current = target.scrollHeight - target.scrollTop - target.clientHeight <= 120;
+            if (loadedMessagePages >= totalMessagePages) return;
+            if (target.scrollTop <= 120) {
+              preserveScrollFromBottomRef.current = target.scrollHeight - target.scrollTop;
+              setMessagePage((page) => Math.min(totalMessagePages, page + 1));
+            }
             if (target.scrollTop <= 120) {
               preserveScrollFromBottomRef.current = target.scrollHeight - target.scrollTop;
               setMessagePage((page) => Math.min(totalMessagePages, page + 1));
